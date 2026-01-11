@@ -1,6 +1,5 @@
 # AI-Driven Auto Investment Platform
 
-
 ## 1. Introduction
 
 Retail investors often face significant challenges while making investment decisions due to the overwhelming volume of financial data, lack of analytical expertise, and difficulty in constructing well-balanced portfolios. Traditional investment tools either require deep financial knowledge or provide limited insights without personalization.
@@ -93,9 +92,7 @@ The design emphasizes separation of concerns, scalability, and explainability.
 
 ## 7. High-Level Architecture
 
-
-![alt text](image.png)
-
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/9f488804-869f-466d-9082-5c0c0f1dda13" />
 
 ---
 
@@ -212,71 +209,96 @@ Example branch names:
 ## 3. Initial Setup (After Cloning / Pulling Main)
 
 ### Step 1: Clone the repository (first time only)
-
-
-git clone <https://github.com/planav/ai-auto-investment>
+```bash
+git clone https://github.com/planav/ai-auto-investment
 cd AUTOINVEST
+```
 
 Or, if already cloned:
-
+```bash
 git checkout main
 git pull origin main
+```
 
-4. Backend Setup (FastAPI)
-4.1 Navigate to backend
+---
+
+## 4. Backend Setup (FastAPI)
+
+### 4.1 Navigate to backend
+```bash
 cd backend
+```
 
-4.2 Install Python dependencies
+### 4.2 Install Python dependencies
+```bash
 pip install -r requirements.txt
+```
 
-4.3 Run the backend server
+### 4.3 Run the backend server
+```bash
 uvicorn app.main:app --reload
+```
 
-4.4 Verify backend is running
+### 4.4 Verify backend is running
 
 Open in browser:
 
-Health check:
-
+**Health check:**
+```
 http://127.0.0.1:8000/health
+```
 
-
-API documentation (Swagger UI):
-
+**API documentation (Swagger UI):**
+```
 http://127.0.0.1:8000/docs
-
+```
 
 If these work, backend setup is successful.
 
-5. Frontend Setup (React)
-5.1 Navigate to frontend
+---
+
+## 5. Frontend Setup (React)
+
+### 5.1 Navigate to frontend
+```bash
 cd frontend/web
+```
 
-5.2 Install frontend dependencies
+### 5.2 Install frontend dependencies
+```bash
 npm install
+```
 
-5.3 Run frontend development server
+### 5.3 Run frontend development server
+```bash
 npm run dev
+```
 
-5.4 Verify frontend is running
+### 5.4 Verify frontend is running
 
 Open in browser:
-
+```
 http://localhost:5173
-
+```
 
 You should see the base React application.
 
-6. Project Structure Explanation
-Backend (backend/)
+---
+
+## 6. Project Structure Explanation
+
+### Backend (backend/)
+```
 backend/
 ├── app/
 │   ├── main.py        # Application entry point
 │   ├── api/           # API routes
 │   └── core/          # Configuration & utilities
 ├── requirements.txt   # Python dependencies
+```
 
-Frontend (frontend/web/)
+### Frontend (frontend/web/)
+```
 frontend/web/
 ├── src/
 │   ├── pages/         # Full pages (Dashboard, Inputs, Results)
@@ -284,30 +306,28 @@ frontend/web/
 │   ├── services/      # API calls to backend
 │   ├── App.jsx        # Root React component
 │   └── main.jsx       # Application entry point
+```
 
-7. Development Rules
+---
 
-Backend logic goes only inside backend/
+## 7. Development Rules
 
-Frontend UI goes only inside frontend/web/
+- Backend logic goes only inside `backend/`
+- Frontend UI goes only inside `frontend/web/`
+- Frontend should never directly access data files or models
+- All communication must happen via APIs
+- Keep commits small and meaningful
+- Always test before pushing
 
-Frontend should never directly access data files or models
+---
 
-All communication must happen via APIs
-
-Keep commits small and meaningful
-
-Always test before pushing
-
-8. Current Stage Status
+## 8. Current Stage Status
 
 At this stage:
 
-Backend skeleton is running successfully
+- ✅ Backend skeleton is running successfully
+- ✅ Frontend skeleton is running successfully
+- ⏳ No business logic is implemented yet
+- ⏳ No AI or data processing is added yet
 
-Frontend skeleton is running successfully
-
-No business logic is implemented yet
-
-No AI or data processing is added yet
 ---
