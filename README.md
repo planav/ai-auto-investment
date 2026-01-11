@@ -10,3 +10,8 @@ Final Year Engineering Project
 
 ## Description
 An AI-based system for automated investment decision making.
+
+## Features
+- Automated portfolio allocation
+- Risk profiling using AI
+- Long-term investment strategy
