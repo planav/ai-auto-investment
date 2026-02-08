@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter()
+from app.api.v1.router import api_router as v1_router
 
-@router.get("/test")
-def test_api():
-    return {"message": "Backend is running"}
+router = APIRouter()
+router.include_router(v1_router, prefix="/v1")
