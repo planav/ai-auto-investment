@@ -1,5 +1,14 @@
 # AI-Driven Auto Investment Platform
 
+**Evaluation Document:** Full Phase 1 / Phase 2 – Review 1 report is available at `docs/Phase1_Review1_Document.md` (updated 08 Feb 2026).
+
+## Current Implementation Snapshot (08 Feb 2026)
+- FastAPI backend with JWT + Argon2 authentication and user preference storage.
+- Market data service calling Finnhub with async caching for quotes, popular baskets, and market overview.
+- Gemini-powered LLM service that returns structured stock/portfolio analyses with explanations.
+- React + Vite frontend shell with protected routes, animated UI, and axios interceptors for token refresh.
+- Portfolio/analysis/backtest endpoints scaffolded; quantitative engine and optimization logic are stubbed and queued for integration.
+
 ## 1. Introduction
 
 Retail investors often face significant challenges while making investment decisions due to the overwhelming volume of financial data, lack of analytical expertise, and difficulty in constructing well-balanced portfolios. Traditional investment tools either require deep financial knowledge or provide limited insights without personalization.
@@ -162,7 +171,7 @@ At the end of Stage 1, the project has:
 - Academic and ethical clarity
 - Strong foundation for implementation
 
-**No functional code is implemented at this stage.**
+**Foundational code is implemented:** authentication, user preferences, market data retrieval, LLM-based analysis, and UI shell are in place. Portfolio CRUD wiring, quantitative forecasting, and optimization remain in progress.
 
 ---
 
