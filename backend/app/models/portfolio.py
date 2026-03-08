@@ -19,7 +19,11 @@ class Portfolio(Base):
     
     # Portfolio configuration
     total_value: Mapped[float] = mapped_column(Float, default=0.0)
+    invested_amount: Mapped[float] = mapped_column(Float, default=0.0)  # Amount invested from wallet
     cash_reserve_pct: Mapped[float] = mapped_column(Float, default=0.05)  # 5% cash reserve
+    
+    # Risk profile
+    risk_profile: Mapped[str] = mapped_column(String(20), default="moderate")  # conservative, moderate, aggressive
     
     # AI Analysis results
     model_type: Mapped[str] = mapped_column(String(50), default="temporal_fusion_transformer")
@@ -38,6 +42,7 @@ class Portfolio(Base):
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="portfolios")
     holdings: Mapped[List["PortfolioHolding"]] = relationship("PortfolioHolding", back_populates="portfolio", lazy="selectin", cascade="all, delete-orphan")
+    transactions: Mapped[List["PortfolioTransaction"]] = relationship("PortfolioTransaction", back_populates="portfolio", lazy="selectin", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<Portfolio(id={self.id}, name={self.name}, user_id={self.user_id})>"
@@ -50,6 +55,7 @@ class PortfolioHolding(Base):
     portfolio_id: Mapped[int] = mapped_column(ForeignKey("portfolios.id"), nullable=False)
     symbol: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     asset_type: Mapped[str] = mapped_column(String(20), nullable=False)  # stock, crypto, etf, gold
+    sector: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # Technology, Healthcare, etc.
     
     # Allocation
     weight: Mapped[float] = mapped_column(Float, nullable=False)  # 0.0 to 1.0
@@ -68,3 +74,22 @@ class PortfolioHolding(Base):
     
     def __repr__(self) -> str:
         return f"<PortfolioHolding(symbol={self.symbol}, weight={self.weight})>"
+
+
+class PortfolioTransaction(Base):
+    __tablename__ = "portfolio_transactions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    portfolio_id: Mapped[int] = mapped_column(ForeignKey("portfolios.id"), nullable=False)
+    
+    transaction_type: Mapped[str] = mapped_column(String(20), nullable=False)  # buy, sell, rebalance, deposit, withdraw
+    symbol: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    quantity: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    amount: Mapped[float] = mapped_column(Float, nullable=False)  # Total amount (positive for buy, negative for sell)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    portfolio: Mapped["Portfolio"] = relationship("Portfolio", back_populates="transactions")
+    
+    def __repr__(self) -> str:
+        return f"<PortfolioTransaction(id={self.id}, type={self.transaction_type}, symbol={self.symbol})>"

@@ -20,6 +20,15 @@ from app.schemas.portfolio import (
     PortfolioPerformance,
     RebalanceRecommendation,
 )
+from app.schemas.wallet import (
+    WalletBase,
+    WalletResponse,
+    WalletBalanceResponse,
+    DepositRequest,
+    WithdrawRequest,
+    TransactionResponse,
+    TransactionResponseList,
+)
 
 __all__ = [
     "UserBase",
@@ -40,4 +49,11 @@ __all__ = [
     "PortfolioAnalysisRequest",
     "PortfolioPerformance",
     "RebalanceRecommendation",
+    "WalletBase",
+    "WalletResponse",
+    "WalletBalanceResponse",
+    "DepositRequest",
+    "WithdrawRequest",
+    "TransactionResponse",
+    "TransactionResponseList",
 ]

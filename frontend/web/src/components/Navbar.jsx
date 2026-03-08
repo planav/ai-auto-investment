@@ -9,7 +9,9 @@ import {
   PieChart, 
   TrendingUp, 
   User,
-  LogOut
+  LogOut,
+  Wallet,
+  PlusCircle
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
@@ -23,6 +25,7 @@ export default function Navbar() {
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/portfolio', label: 'Portfolio', icon: PieChart },
     { path: '/analysis', label: 'Analysis', icon: TrendingUp },
+    { path: '/deposit-withdraw', label: 'Wallet', icon: Wallet },
   ]
 
   const isActive = (path) => {
@@ -88,7 +91,14 @@ export default function Navbar() {
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/invest"
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-success text-dark rounded-lg hover:bg-success/90 transition-colors"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Invest
+                </Link>
                 <div className="flex items-center gap-2 text-sm text-gray-400">
                   <User className="w-4 h-4" />
                   <span>{user?.full_name || user?.email}</span>

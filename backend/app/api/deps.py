@@ -8,7 +8,7 @@ from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(

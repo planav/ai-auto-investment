@@ -7,6 +7,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.portfolio import Portfolio
+    from app.models.wallet import Wallet
 
 
 class User(Base):
@@ -28,6 +29,7 @@ class User(Base):
     
     # Relationships
     portfolios: Mapped[List["Portfolio"]] = relationship("Portfolio", back_populates="user", lazy="selectin")
+    wallet: Mapped[Optional["Wallet"]] = relationship("Wallet", back_populates="user", uselist=False, lazy="selectin")
     
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

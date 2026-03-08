@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
   TrendingUp, 
+  TrendingDown,
   PieChart, 
   Activity, 
   DollarSign,
@@ -14,32 +15,53 @@ import {
   Globe,
   Wallet,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Plus,
+  RefreshCw,
+  Target,
+  BarChart3,
+  Shield,
+  Clock,
+  Layers
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import { marketApi, portfolioApi, userApi } from '../services/api'
+import { marketApi, portfolioApi, walletApi, dashboardApi } from '../services/api'
 import PortfolioChart from '../components/PortfolioChart'
 import AssetAllocation from '../components/AssetAllocation'
-import RecentActivity from '../components/RecentActivity'
 import toast from 'react-hot-toast'
 
 export default function Dashboard() {
   const { isAuthenticated, user } = useAuthStore()
   const navigate = useNavigate()
   
+  // Market data state
   const [marketData, setMarketData] = useState({
-    spy: { price: 0, change: 0 },
-    qqq: { price: 0, change: 0 },
-    dia: { price: 0, change: 0 }
+    GSPC: { price: 0, change: 0 },
+    IXIC: { price: 0, change: 0 },
+    DJI: { price: 0, change: 0 }
   })
-  const [topMovers, setTopMovers] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
   
-  // Real portfolio data from API
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  
+  // Portfolio data
   const [portfolios, setPortfolios] = useState([])
+  const [selectedPortfolio, setSelectedPortfolio] = useState(null)
   const [totalValue, setTotalValue] = useState(0)
+  const [totalInvested, setTotalInvested] = useState(0)
   const [totalReturn, setTotalReturn] = useState(0)
-  const [userPreferences, setUserPreferences] = useState(null)
+  const [totalReturnPct, setTotalReturnPct] = useState(0)
+  
+  // Wallet data
+  const [walletBalance, setWalletBalance] = useState({
+    balance: 0,
+    total_deposited: 0,
+    total_withdrawn: 0,
+    total_invested: 0
+  })
+  
+  // AI insights
   const [aiInsights, setAiInsights] = useState([])
 
   useEffect(() => {
@@ -48,200 +70,215 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, navigate])
 
-  // Fetch real data
   useEffect(() => {
     if (isAuthenticated) {
       fetchAllData()
-      // Refresh every 60 seconds
       const interval = setInterval(fetchAllData, 60000)
       return () => clearInterval(interval)
     }
   }, [isAuthenticated])
 
   const fetchAllData = async () => {
-    await Promise.all([
-      fetchMarketData(),
-      fetchPortfolioData(),
-      fetchUserPreferences(),
-    ])
+    try {
+      if (!isRefreshing) setIsLoading(true)
+      
+      await Promise.all([
+        fetchMarketData(),
+        fetchDashboardData()
+      ])
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }
+
+  const handleRefresh = () => {
+    setIsRefreshing(true)
+    fetchAllData()
   }
 
   const fetchMarketData = async () => {
     try {
-      // Fetch market overview
       const overviewRes = await marketApi.getMarketOverview()
       if (overviewRes.data?.indices) {
         const indices = overviewRes.data.indices
         setMarketData({
-          spy: { 
-            price: indices.SPY?.price || 0, 
-            change: indices.SPY?.change_percent || 0 
+          GSPC: { 
+            price: indices.GSPC?.price || 0, 
+            change: indices.GSPC?.change_percent || 0 
           },
-          qqq: { 
-            price: indices.QQQ?.price || 0, 
-            change: indices.QQQ?.change_percent || 0 
+          IXIC: { 
+            price: indices.IXIC?.price || 0, 
+            change: indices.IXIC?.change_percent || 0 
           },
-          dia: { 
-            price: indices.DIA?.price || 0, 
-            change: indices.DIA?.change_percent || 0 
+          DJI: { 
+            price: indices.DJI?.price || 0, 
+            change: indices.DJI?.change_percent || 0 
           }
         })
-      }
-      
-      // Fetch popular stocks for top movers
-      const popularRes = await marketApi.getPopularStocks()
-      if (popularRes.data) {
-        const sorted = [...popularRes.data]
-          .sort((a, b) => Math.abs(b.change_percent) - Math.abs(a.change_percent))
-          .slice(0, 5)
-        setTopMovers(sorted)
       }
     } catch (error) {
       console.error('Error fetching market data:', error)
     }
   }
 
-  const fetchPortfolioData = async () => {
+  const fetchDashboardData = async () => {
     try {
-      setIsLoading(true)
-      const response = await portfolioApi.getAll()
-      if (response.data) {
-        setPortfolios(response.data)
-        
-        // Calculate total value and return
-        let value = 0
-        let returnValue = 0
-        
-        response.data.forEach(portfolio => {
-          value += portfolio.total_value || 0
-          // Calculate return based on holdings
-          portfolio.holdings?.forEach(holding => {
-            const cost = holding.avg_price * holding.quantity
-            const current = holding.current_price * holding.quantity
-            returnValue += (current - cost)
-          })
-        })
-        
-        setTotalValue(value)
-        setTotalReturn(returnValue)
-        
-        // Generate AI insights based on real portfolio data
-        generateAiInsights(response.data)
+      const dashboardRes = await dashboardApi.getDashboard()
+      const data = dashboardRes.data
+      
+      // Set portfolios
+      const userPortfolios = data.portfolios || []
+      setPortfolios(userPortfolios)
+      
+      // Select first portfolio if none selected
+      if (userPortfolios.length > 0 && !selectedPortfolio) {
+        setSelectedPortfolio(userPortfolios[0])
+      } else if (userPortfolios.length > 0 && selectedPortfolio) {
+        // Update selected portfolio with fresh data
+        const updated = userPortfolios.find(p => p.id === selectedPortfolio.id)
+        if (updated) setSelectedPortfolio(updated)
       }
+      
+      // Set wallet
+      setWalletBalance(data.wallet || {
+        balance: 0,
+        total_deposited: 0,
+        total_withdrawn: 0,
+        total_invested: 0
+      })
+      
+      // Calculate totals
+      const portfolioValue = data.total_portfolio_value || 0
+      const invested = data.total_invested || 0
+      
+      setTotalValue(portfolioValue)
+      setTotalInvested(invested)
+      
+      // Calculate return
+      const returns = portfolioValue - invested
+      setTotalReturn(returns)
+      setTotalReturnPct(invested > 0 ? (returns / invested) * 100 : 0)
+      
+      // Generate insights
+      generateAiInsights(userPortfolios)
+      
     } catch (error) {
-      console.error('Error fetching portfolio data:', error)
-      toast.error('Failed to load portfolio data')
-    } finally {
-      setIsLoading(false)
+      console.error('Error fetching dashboard data:', error)
     }
   }
 
-  const fetchUserPreferences = async () => {
-    try {
-      const response = await userApi.getPreferences()
-      if (response.data) {
-        setUserPreferences(response.data)
-      }
-    } catch (error) {
-      console.error('Error fetching user preferences:', error)
-    }
-  }
-
-  const generateAiInsights = (portfolios) => {
-    if (!portfolios || portfolios.length === 0) {
-      setAiInsights([{
-        title: 'Welcome to AutoInvest',
-        description: 'Create your first portfolio to get personalized AI insights.',
-        confidence: 100,
-        type: 'info',
-      }])
-      return
-    }
-
+  const generateAiInsights = (portfoliosData) => {
     const insights = []
     
-    // Check for rebalancing needs
-    portfolios.forEach(portfolio => {
-      if (portfolio.holdings && portfolio.holdings.length > 0) {
-        const totalWeight = portfolio.holdings.reduce((sum, h) => sum + h.weight, 0)
+    // Welcome insight for new users
+    if (!portfoliosData || portfoliosData.length === 0) {
+      insights.push({
+        title: 'Welcome to AutoInvest!',
+        description: 'Start by depositing funds and creating your first AI-optimized portfolio.',
+        type: 'info',
+        confidence: 100
+      })
+      setAiInsights(insights)
+      return
+    }
+    
+    // Portfolio-specific insights
+    portfoliosData.forEach(portfolio => {
+      // Check for rebalancing
+      if (portfolio.holdings?.length > 0) {
+        const totalWeight = portfolio.holdings.reduce((sum, h) => sum + (h.weight || 0), 0)
         const drift = Math.abs(totalWeight - 1.0)
         
         if (drift > 0.05) {
           insights.push({
-            title: `Rebalancing Recommended: ${portfolio.name}`,
-            description: `Portfolio drift detected at ${(drift * 100).toFixed(1)}%. Rebalancing could improve risk-adjusted returns.`,
-            confidence: Math.min(95, 70 + drift * 100),
+            title: 'Rebalancing Needed',
+            description: `${portfolio.name} has drifted ${(drift * 100).toFixed(1)}% from target allocation.`,
             type: 'action',
+            confidence: Math.min(95, 70 + drift * 100)
           })
         }
         
-        // Check for high confidence signals
+        // Check holdings for signals
         portfolio.holdings.forEach(holding => {
-          if (holding.confidence_score > 0.8 && holding.predicted_return > 0.1) {
+          if (holding.signal_strength === 'strong_buy' && holding.confidence_score > 0.8) {
             insights.push({
-              title: `Strong Buy Signal: ${holding.symbol}`,
-              description: `AI predicts ${(holding.predicted_return * 100).toFixed(1)}% return with ${(holding.confidence_score * 100).toFixed(0)}% confidence.`,
-              confidence: holding.confidence_score * 100,
+              title: `Strong Signal: ${holding.symbol}`,
+              description: `High confidence buy signal with ${(holding.predicted_return * 100).toFixed(1)}% predicted return.`,
               type: 'opportunity',
+              confidence: holding.confidence_score * 100
             })
           }
         })
       }
+      
+      // Risk warning
+      if (portfolio.volatility && portfolio.volatility > 0.25) {
+        insights.push({
+          title: 'High Volatility Alert',
+          description: `${portfolio.name} has elevated volatility (${(portfolio.volatility * 100).toFixed(1)}%). Consider defensive positioning.`,
+          type: 'warning',
+          confidence: 80
+        })
+      }
     })
     
-    // Add market regime insight based on portfolio metrics
-    const avgVolatility = portfolios.reduce((sum, p) => sum + (p.volatility || 0), 0) / portfolios.length
-    if (avgVolatility > 0.2) {
+    // Market context
+    const marketChange = marketData.GSPC?.change || 0
+    if (marketChange < -2) {
       insights.push({
-        title: 'Elevated Volatility Detected',
-        description: 'Your portfolios are experiencing higher than normal volatility. Consider defensive positioning.',
-        confidence: 75,
-        type: 'warning',
+        title: 'Market Dip Opportunity',
+        description: 'Market is down significantly. This could be a good entry point for new investments.',
+        type: 'opportunity',
+        confidence: 65
       })
     }
     
-    // Limit to top 3 insights
-    setAiInsights(insights.slice(0, 3))
+    setAiInsights(insights.slice(0, 4))
   }
 
-  // Calculate portfolio stats from real data
-  const portfolioStats = [
+  // Stats for display
+  const stats = [
     {
       title: 'Total Portfolio Value',
-      value: totalValue > 0 ? `$${totalValue.toLocaleString()}` : '$0',
-      change: totalValue > 0 && userPreferences?.initial_investment 
-        ? `${((totalValue - userPreferences.initial_investment) / userPreferences.initial_investment * 100).toFixed(1)}%`
-        : '0%',
-      isPositive: totalValue >= (userPreferences?.initial_investment || 0),
+      value: totalValue,
+      format: 'currency',
+      subValue: totalReturnPct,
+      subLabel: 'all time',
+      positive: totalReturn >= 0,
       icon: DollarSign,
-      color: 'primary',
+      color: 'primary'
+    },
+    {
+      title: 'Total Invested',
+      value: totalInvested,
+      format: 'currency',
+      subValue: null,
+      positive: true,
+      icon: Layers,
+      color: 'secondary'
     },
     {
       title: 'Total Return',
-      value: totalReturn >= 0 ? `$${totalReturn.toLocaleString()}` : `-$${Math.abs(totalReturn).toLocaleString()}`,
-      change: totalValue > 0 ? `${(totalReturn / totalValue * 100).toFixed(1)}%` : '0%',
-      isPositive: totalReturn >= 0,
-      icon: TrendingUp,
-      color: totalReturn >= 0 ? 'success' : 'danger',
+      value: totalReturn,
+      format: 'currency',
+      subValue: totalReturnPct,
+      subLabel: 'return',
+      positive: totalReturn >= 0,
+      icon: totalReturn >= 0 ? TrendingUp : TrendingDown,
+      color: totalReturn >= 0 ? 'success' : 'danger'
     },
     {
-      title: 'Active Portfolios',
-      value: portfolios.length.toString(),
-      change: portfolios.length > 0 ? 'Active' : 'None',
-      isPositive: portfolios.length > 0,
-      icon: PieChart,
-      color: 'secondary',
-    },
-    {
-      title: 'Available Balance',
-      value: userPreferences?.initial_investment 
-        ? `$${userPreferences.initial_investment.toLocaleString()}` 
-        : '$0',
-      change: 'Cash',
-      isPositive: true,
+      title: 'Available Cash',
+      value: walletBalance.balance,
+      format: 'currency',
+      subValue: null,
+      positive: true,
       icon: Wallet,
-      color: 'accent',
-    },
+      color: 'accent'
+    }
   ]
 
   if (!isAuthenticated) {
@@ -255,76 +292,71 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 flex items-center justify-between"
         >
-          <h1 className="text-3xl font-bold font-display mb-2">
-            Welcome back, <span className="text-gradient">{user?.full_name?.split(' ')[0] || 'Investor'}</span>
-          </h1>
-          <p className="text-gray-400">
-            Here's an overview of your investment portfolio
-          </p>
+          <div>
+            <h1 className="text-3xl font-bold font-display mb-1">
+              Dashboard
+            </h1>
+            <p className="text-gray-400 text-sm">
+              Welcome back, <span className="text-gradient">{user?.full_name?.split(' ')[0] || 'Investor'}</span>
+            </p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-dark-lighter rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </motion.div>
 
-        {/* Live Market Ticker */}
+        {/* Market Overview */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8"
+          className="mb-6"
         >
           <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Globe className="w-4 h-4 text-primary" />
-              <span className="text-sm text-gray-400">Live Market</span>
-              <span className="flex w-2 h-2 bg-success rounded-full animate-pulse"></span>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">Market Overview</span>
+                <span className="flex w-2 h-2 bg-success rounded-full animate-pulse"></span>
+              </div>
+              <span className="text-xs text-gray-500">Live</span>
             </div>
+            
             {isLoading ? (
-              <div className="flex items-center gap-4">
-                <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                <span className="text-sm text-gray-400">Loading market data...</span>
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 text-primary animate-spin" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-dark-lighter">
-                  <span className="text-sm text-gray-400">S&P 500</span>
-                  <div className="text-right">
-                    <div className="font-semibold">${marketData.spy.price?.toFixed(2) || '---'}</div>
-                    <div className={`text-xs ${marketData.spy.change >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {marketData.spy.change >= 0 ? '+' : ''}{marketData.spy.change?.toFixed(2) || '0.00'}%
-                    </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-3 bg-dark-lighter rounded-lg">
+                  <div className="text-xs text-gray-500 mb-1">S&P 500</div>
+                  <div className="font-semibold">{marketData.GSPC.price?.toLocaleString() || '---'}</div>
+                  <div className={`text-xs flex items-center gap-1 ${marketData.GSPC.change >= 0 ? 'text-success' : 'text-danger'}`}>
+                    {marketData.GSPC.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                    {marketData.GSPC.change >= 0 ? '+' : ''}{marketData.GSPC.change?.toFixed(2) || '0.00'}%
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-dark-lighter">
-                  <span className="text-sm text-gray-400">NASDAQ</span>
-                  <div className="text-right">
-                    <div className="font-semibold">${marketData.qqq.price?.toFixed(2) || '---'}</div>
-                    <div className={`text-xs ${marketData.qqq.change >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {marketData.qqq.change >= 0 ? '+' : ''}{marketData.qqq.change?.toFixed(2) || '0.00'}%
-                    </div>
+                <div className="p-3 bg-dark-lighter rounded-lg">
+                  <div className="text-xs text-gray-500 mb-1">NASDAQ</div>
+                  <div className="font-semibold">{marketData.IXIC.price?.toLocaleString() || '---'}</div>
+                  <div className={`text-xs flex items-center gap-1 ${marketData.IXIC.change >= 0 ? 'text-success' : 'text-danger'}`}>
+                    {marketData.IXIC.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                    {marketData.IXIC.change >= 0 ? '+' : ''}{marketData.IXIC.change?.toFixed(2) || '0.00'}%
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-dark-lighter">
-                  <span className="text-sm text-gray-400">Dow Jones</span>
-                  <div className="text-right">
-                    <div className="font-semibold">${marketData.dia.price?.toFixed(2) || '---'}</div>
-                    <div className={`text-xs ${marketData.dia.change >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {marketData.dia.change >= 0 ? '+' : ''}{marketData.dia.change?.toFixed(2) || '0.00'}%
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-dark-lighter">
-                  <span className="text-sm text-gray-400">Top Mover</span>
-                  <div className="text-right">
-                    {topMovers[0] ? (
-                      <>
-                        <div className="font-semibold">{topMovers[0].symbol}</div>
-                        <div className={`text-xs ${topMovers[0].change_percent >= 0 ? 'text-success' : 'text-danger'}`}>
-                          {topMovers[0].change_percent >= 0 ? '+' : ''}{topMovers[0].change_percent?.toFixed(2)}%
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-xs text-gray-400">---</div>
-                    )}
+                <div className="p-3 bg-dark-lighter rounded-lg">
+                  <div className="text-xs text-gray-500 mb-1">Dow Jones</div>
+                  <div className="font-semibold">{marketData.DJI.price?.toLocaleString() || '---'}</div>
+                  <div className={`text-xs flex items-center gap-1 ${marketData.DJI.change >= 0 ? 'text-success' : 'text-danger'}`}>
+                    {marketData.DJI.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                    {marketData.DJI.change >= 0 ? '+' : ''}{marketData.DJI.change?.toFixed(2) || '0.00'}%
                   </div>
                 </div>
               </div>
@@ -333,169 +365,291 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {portfolioStats.map((stat, index) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {stats.map((stat, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass-card p-6 card-hover"
+              transition={{ delay: 0.1 + index * 0.05 }}
+              className="glass-card p-4"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className={`w-12 h-12 rounded-xl bg-${stat.color}/10 flex items-center justify-center`}>
-                  <stat.icon className={`w-6 h-6 text-${stat.color}`} />
-                </div>
-                <div className={`flex items-center gap-1 text-sm ${stat.isPositive ? 'text-success' : 'text-danger'}`}>
-                  {stat.isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                  {stat.change}
+              <div className="flex items-center justify-between mb-2">
+                <div className={`w-8 h-8 rounded-lg bg-${stat.color}/10 flex items-center justify-center`}>
+                  <stat.icon className={`w-4 h-4 text-${stat.color}`} />
                 </div>
               </div>
-              <div className="text-2xl font-bold font-display number-display">{stat.value}</div>
-              <div className="text-gray-400 text-sm">{stat.title}</div>
+              <div className="text-xs text-gray-500 mb-1">{stat.title}</div>
+              <div className="text-xl font-bold font-display">
+                {stat.format === 'currency' ? '$' : ''}{stat.value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+              </div>
+              {stat.subValue !== null && (
+                <div className={`text-xs flex items-center gap-1 ${stat.positive ? 'text-success' : 'text-danger'}`}>
+                  {stat.positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {stat.positive ? '+' : ''}{stat.subValue?.toFixed(2) || '0.00'}%
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Portfolio Performance Chart */}
+        {/* No Portfolios State */}
+        {portfolios.length === 0 && !isLoading ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="lg:col-span-2 glass-card p-6"
+            className="glass-card p-12 text-center"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">Portfolio Performance</h2>
-                <p className="text-gray-400 text-sm">
-                  {portfolios.length > 0 ? `${portfolios.length} active portfolio${portfolios.length > 1 ? 's' : ''}` : 'No portfolios yet'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-sm text-success">
-                  <Zap className="w-4 h-4" />
-                  AI Optimized
-                </span>
-              </div>
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-10 h-10 text-primary" />
             </div>
-            {portfolios.length > 0 ? (
-              <PortfolioChart portfolios={portfolios} />
-            ) : (
-              <div className="text-center py-12">
-                <Sparkles className="w-12 h-12 mx-auto mb-4 text-primary/50" />
-                <p className="text-gray-400 mb-4">No portfolios yet</p>
-                <Link to="/onboarding" className="btn-primary inline-block">
-                  Create Your First Portfolio
+            <h2 className="text-2xl font-bold font-display mb-2">Start Your Investment Journey</h2>
+            <p className="text-gray-400 mb-6 max-w-md mx-auto">
+              Deposit funds and let our AI create an optimized portfolio based on your risk tolerance and investment goals.
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <Link
+                to="/deposit-withdraw"
+                className="btn-secondary flex items-center gap-2"
+              >
+                <Wallet className="w-4 h-4" />
+                Deposit Funds
+              </Link>
+              {walletBalance.balance > 0 && (
+                <Link
+                  to="/invest"
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Brain className="w-4 h-4" />
+                  Create Portfolio
                 </Link>
-              </div>
-            )}
-          </motion.div>
-
-          {/* Asset Allocation */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="glass-card p-6"
-          >
-            <h2 className="text-xl font-semibold mb-6">Asset Allocation</h2>
-            {portfolios.length > 0 && portfolios[0]?.holdings ? (
-              <AssetAllocation holdings={portfolios[0].holdings} />
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <PieChart className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Create a portfolio to see allocation</p>
-              </div>
-            )}
-          </motion.div>
-        </div>
-
-        {/* Recent Activity & AI Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="glass-card p-6"
-          >
-            <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
-            <RecentActivity portfolios={portfolios} />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <Brain className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-semibold">AI Insights</h2>
-            </div>
-            <div className="space-y-4">
-              {aiInsights.length > 0 ? (
-                aiInsights.map((insight, index) => (
-                  <div
-                    key={index}
-                    className="p-4 rounded-lg bg-dark-lighter border border-gray-800 hover:border-primary/30 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-medium">{insight.title}</h3>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        insight.type === 'opportunity' ? 'bg-success/20 text-success' :
-                        insight.type === 'action' ? 'bg-primary/20 text-primary' :
-                        insight.type === 'warning' ? 'bg-warning/20 text-warning' :
-                        'bg-gray-700 text-gray-300'
-                      }`}>
-                        {insight.confidence.toFixed(0)}% confidence
-                      </span>
-                    </div>
-                    <p className="text-gray-400 text-sm">{insight.description}</p>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No insights available yet</p>
-                </div>
               )}
             </div>
-          </motion.div>
-        </div>
-
-        {/* Top Movers Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-8"
-        >
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Today's Top Movers</h2>
-              <span className="text-sm text-gray-400">Real-time data</span>
-            </div>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {topMovers.map((stock, index) => (
-                  <div key={index} className="p-4 rounded-lg bg-dark-lighter">
-                    <div className="font-bold text-lg">{stock.symbol}</div>
-                    <div className="text-gray-400 text-sm">${stock.price?.toFixed(2)}</div>
-                    <div className={`text-sm font-medium ${stock.change_percent >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {stock.change_percent >= 0 ? '+' : ''}{stock.change_percent?.toFixed(2)}%
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {walletBalance.balance === 0 && (
+              <p className="text-sm text-gray-500 mt-4">
+                You need to add funds before creating a portfolio
+              </p>
             )}
-          </div>
-        </motion.div>
+          </motion.div>
+        ) : (
+          <>
+            {/* Portfolio Selector (if multiple portfolios) */}
+            {portfolios.length > 1 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4"
+              >
+                <div className="glass-card p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <PieChart className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Your Portfolios</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {portfolios.map(portfolio => (
+                      <button
+                        key={portfolio.id}
+                        onClick={() => setSelectedPortfolio(portfolio)}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                          selectedPortfolio?.id === portfolio.id
+                            ? 'bg-primary text-dark'
+                            : 'bg-dark-lighter hover:bg-gray-800'
+                        }`}
+                      >
+                        {portfolio.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Main Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Portfolio Performance */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="lg:col-span-2 glass-card p-6"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-semibold">
+                      {selectedPortfolio?.name || 'Portfolio Performance'}
+                    </h2>
+                    {selectedPortfolio && (
+                      <p className="text-sm text-gray-400">
+                        {selectedPortfolio.holdings_count || 0} holdings • {selectedPortfolio.risk_profile || 'moderate'} risk
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-primary" />
+                    <span className="text-xs text-primary">AI Optimized</span>
+                  </div>
+                </div>
+
+                {selectedPortfolio && selectedPortfolio.holdings?.length > 0 ? (
+                  <>
+                    <PortfolioChart portfolios={[selectedPortfolio]} />
+                    
+                    {/* Holdings Table */}
+                    <div className="mt-6">
+                      <h3 className="text-sm font-medium mb-3">Holdings</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="text-left text-xs text-gray-500 border-b border-gray-800">
+                              <th className="pb-2">Symbol</th>
+                              <th className="pb-2">Shares</th>
+                              <th className="pb-2">Price</th>
+                              <th className="pb-2">Value</th>
+                              <th className="pb-2">Weight</th>
+                              <th className="pb-2">AI Signal</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedPortfolio.holdings.slice(0, 5).map((holding, idx) => (
+                              <tr key={idx} className="border-b border-gray-800/50 text-sm">
+                                <td className="py-3 font-medium">{holding.symbol}</td>
+                                <td className="py-3 text-gray-400">{holding.quantity?.toFixed(2) || '0'}</td>
+                                <td className="py-3">${holding.current_price?.toFixed(2) || '0.00'}</td>
+                                <td className="py-3">${holding.market_value?.toFixed(2) || '0.00'}</td>
+                                <td className="py-3">{((holding.weight || 0) * 100).toFixed(1)}%</td>
+                                <td className="py-3">
+                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                    holding.signal_strength === 'buy' || holding.signal_strength === 'strong_buy'
+                                      ? 'bg-success/20 text-success'
+                                      : holding.signal_strength === 'sell' || holding.signal_strength === 'strong_sell'
+                                      ? 'bg-danger/20 text-danger'
+                                      : 'bg-gray-700 text-gray-400'
+                                  }`}>
+                                    {holding.signal_strength?.replace('_', ' ') || 'hold'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {selectedPortfolio.holdings.length > 5 && (
+                        <Link to={`/portfolio/${selectedPortfolio.id}`} className="text-sm text-primary hover:underline mt-2 inline-block">
+                          View all {selectedPortfolio.holdings.length} holdings →
+                        </Link>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <PieChart className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                    <p className="text-gray-400">No holdings in this portfolio</p>
+                    <Link to="/invest" className="btn-primary inline-block mt-4">
+                      Add Investments
+                    </Link>
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Right Column */}
+              <div className="space-y-6">
+                {/* Asset Allocation */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="glass-card p-6"
+                >
+                  <h2 className="text-lg font-semibold mb-4">Asset Allocation</h2>
+                  {selectedPortfolio?.holdings?.length > 0 ? (
+                    <AssetAllocation holdings={selectedPortfolio.holdings} />
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      <PieChart className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No holdings yet</p>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* AI Insights */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="glass-card p-6"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <Brain className="w-5 h-5 text-primary" />
+                    <h2 className="text-lg font-semibold">AI Insights</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {aiInsights.map((insight, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 bg-dark-lighter rounded-lg"
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <h3 className="text-sm font-medium">{insight.title}</h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            insight.type === 'opportunity' ? 'bg-success/20 text-success' :
+                            insight.type === 'action' ? 'bg-primary/20 text-primary' :
+                            insight.type === 'warning' ? 'bg-warning/20 text-warning' :
+                            'bg-gray-700 text-gray-400'
+                          }`}>
+                            {insight.confidence?.toFixed(0)}%
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400">{insight.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Quick Actions */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="glass-card p-6"
+                >
+                  <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+                  <div className="space-y-2">
+                    <Link
+                      to="/deposit-withdraw"
+                      className="flex items-center gap-3 p-3 bg-dark-lighter rounded-lg hover:bg-gray-800 transition-colors"
+                    >
+                      <Wallet className="w-5 h-5 text-success" />
+                      <div>
+                        <div className="text-sm font-medium">Add Funds</div>
+                        <div className="text-xs text-gray-500">Deposit simulated money</div>
+                      </div>
+                    </Link>
+                    <Link
+                      to="/invest"
+                      className="flex items-center gap-3 p-3 bg-dark-lighter rounded-lg hover:bg-gray-800 transition-colors"
+                    >
+                      <Brain className="w-5 h-5 text-primary" />
+                      <div>
+                        <div className="text-sm font-medium">New Portfolio</div>
+                        <div className="text-xs text-gray-500">Create AI-optimized portfolio</div>
+                      </div>
+                    </Link>
+                    <Link
+                      to="/analysis"
+                      className="flex items-center gap-3 p-3 bg-dark-lighter rounded-lg hover:bg-gray-800 transition-colors"
+                    >
+                      <BarChart3 className="w-5 h-5 text-secondary" />
+                      <div>
+                        <div className="text-sm font-medium">AI Analysis</div>
+                        <div className="text-xs text-gray-500">Analyze stocks with AI</div>
+                      </div>
+                    </Link>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

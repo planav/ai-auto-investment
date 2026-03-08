@@ -21,6 +21,7 @@ from app.agents.research_agent.agent import ResearchAgent
 from app.engines.quant_engine.engine import QuantEngine, ModelType
 from app.engines.portfolio_engine.engine import PortfolioEngine
 from app.services.market_data import market_data_service
+from app.services.wallet_service import WalletService
 
 router = APIRouter()
 
@@ -55,6 +56,24 @@ async def create_portfolio(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """Create a new portfolio with AI-generated holdings."""
+    # Initialize wallet service
+    wallet_service = WalletService(db)
+    
+    # Check wallet balance before creating portfolio
+    wallet = await wallet_service.get_or_create_wallet(current_user.id)
+    if wallet.balance < portfolio_in.investment_amount:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Insufficient wallet balance. Required: ${portfolio_in.investment_amount:,.2f}, Available: ${wallet.balance:,.2f}",
+        )
+    
+    # Deduct investment amount from wallet
+    await wallet_service.deduct_for_investment(
+        user_id=current_user.id,
+        amount=portfolio_in.investment_amount,
+        reference_id=f"portfolio_creation",
+    )
+    
     # Create portfolio
     portfolio = Portfolio(
         user_id=current_user.id,
