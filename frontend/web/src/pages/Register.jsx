@@ -12,8 +12,6 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    risk_tolerance: 'moderate',
-    investment_horizon: 5,
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -32,10 +30,26 @@ export default function Register() {
 
     try {
       const { confirmPassword, ...registerData } = formData
-      const response = await authApi.register(registerData)
-      const { access_token, refresh_token } = response.data
+      await authApi.register(registerData)
       
-      login(response.data, access_token, refresh_token)
+      // After registration, automatically login to get tokens
+      const loginResponse = await authApi.login({
+        email: formData.email,
+        password: formData.password
+      })
+      
+      const { access_token, refresh_token } = loginResponse.data
+      
+      // Get user info after login
+      const axios = (await import('axios')).default
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+      const userResponse = await axios.get(`${API_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${access_token}` }
+      })
+      
+      // Store tokens and user data together
+      login(userResponse.data, access_token, refresh_token)
+      
       toast.success('Account created successfully!')
       navigate('/dashboard')
     } catch (error) {
@@ -144,37 +158,6 @@ export default function Register() {
                 className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition-colors"
                 placeholder="••••••••"
                 required
-              />
-            </div>
-
-            {/* Risk Tolerance */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Risk Tolerance
-              </label>
-              <select
-                value={formData.risk_tolerance}
-                onChange={(e) => setFormData({ ...formData, risk_tolerance: e.target.value })}
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition-colors"
-              >
-                <option value="conservative">Conservative</option>
-                <option value="moderate">Moderate</option>
-                <option value="aggressive">Aggressive</option>
-              </select>
-            </div>
-
-            {/* Investment Horizon */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Investment Horizon (years)
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="30"
-                value={formData.investment_horizon}
-                onChange={(e) => setFormData({ ...formData, investment_horizon: parseInt(e.target.value) })}
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition-colors"
               />
             </div>
 

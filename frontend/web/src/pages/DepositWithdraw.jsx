@@ -7,51 +7,56 @@ import {
   History,
   AlertCircle,
   CheckCircle,
-  Loader2
+  Loader2,
+  TrendingUp
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import { portfolioApi, userApi } from '../services/api'
+import { walletApi, dashboardApi } from '../services/api'
 import toast from 'react-hot-toast'
 
 export default function DepositWithdraw() {
   const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState('deposit')
   const [amount, setAmount] = useState('')
-  const [balance, setBalance] = useState(0)
-  const [portfolios, setPortfolios] = useState([])
-  const [selectedPortfolio, setSelectedPortfolio] = useState('')
+  const [walletBalance, setWalletBalance] = useState({
+    balance: 0,
+    total_deposited: 0,
+    total_withdrawn: 0,
+    total_invested: 0,
+    currency: 'USD'
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
   const [transactions, setTransactions] = useState([])
+  const [pagination, setPagination] = useState({ page: 1, page_size: 20, total: 0 })
 
   useEffect(() => {
-    fetchUserData()
+    fetchWalletData()
   }, [])
 
-  const fetchUserData = async () => {
+  const fetchWalletData = async () => {
     try {
       setIsFetching(true)
       
-      // Get user preferences for balance
-      const userRes = await userApi.getPreferences()
-      if (userRes.data) {
-        setBalance(userRes.data.initial_investment || 0)
+      // Get wallet balance
+      const walletRes = await walletApi.getBalance()
+      if (walletRes.data) {
+        setWalletBalance(walletRes.data)
       }
 
-      // Get portfolios
-      const portfolioRes = await portfolioApi.getAll()
-      if (portfolioRes.data && portfolioRes.data.length > 0) {
-        setPortfolios(portfolioRes.data)
-        setSelectedPortfolio(portfolioRes.data[0].id.toString())
+      // Get transactions
+      const transRes = await walletApi.getTransactions(1, 20)
+      if (transRes.data) {
+        setTransactions(transRes.data.transactions || [])
+        setPagination({
+          page: transRes.data.page,
+          page_size: transRes.data.page_size,
+          total: transRes.data.total
+        })
       }
-
-      // Mock transactions for now - in production this would come from API
-      setTransactions([
-        { id: 1, type: 'deposit', amount: 10000, date: new Date().toISOString(), status: 'completed' },
-      ])
     } catch (error) {
-      console.error('Error fetching user data:', error)
-      toast.error('Failed to load account data')
+      console.error('Error fetching wallet data:', error)
+      toast.error('Failed to load wallet data')
     } finally {
       setIsFetching(false)
     }
@@ -64,42 +69,18 @@ export default function DepositWithdraw() {
       return
     }
 
-    if (!selectedPortfolio) {
-      toast.error('Please select a portfolio')
+    if (depositAmount > 1000000) {
+      toast.error('Maximum deposit is $1,000,000')
       return
     }
 
     setIsLoading(true)
     try {
-      // Update user preferences with new balance
-      const newBalance = balance + depositAmount
-      await userApi.updatePreferences({
-        initial_investment: newBalance,
-      })
-
-      // Update portfolio value
-      const portfolio = portfolios.find(p => p.id.toString() === selectedPortfolio)
-      if (portfolio) {
-        await portfolioApi.update(selectedPortfolio, {
-          total_value: (portfolio.total_value || 0) + depositAmount,
-        })
-      }
-
-      setBalance(newBalance)
-      setTransactions(prev => [
-        { 
-          id: Date.now(), 
-          type: 'deposit', 
-          amount: depositAmount, 
-          date: new Date().toISOString(), 
-          status: 'completed' 
-        },
-        ...prev
-      ])
-
+      await walletApi.deposit(depositAmount, 'Deposit to investment wallet')
+      
       toast.success(`Successfully deposited $${depositAmount.toLocaleString()}`)
       setAmount('')
-      fetchUserData() // Refresh data
+      fetchWalletData()
     } catch (error) {
       console.error('Deposit error:', error)
       toast.error('Failed to process deposit')
@@ -115,47 +96,18 @@ export default function DepositWithdraw() {
       return
     }
 
-    if (withdrawAmount > balance) {
+    if (withdrawAmount > walletBalance.balance) {
       toast.error('Insufficient funds')
-      return
-    }
-
-    if (!selectedPortfolio) {
-      toast.error('Please select a portfolio')
       return
     }
 
     setIsLoading(true)
     try {
-      // Update user preferences with new balance
-      const newBalance = balance - withdrawAmount
-      await userApi.updatePreferences({
-        initial_investment: newBalance,
-      })
-
-      // Update portfolio value
-      const portfolio = portfolios.find(p => p.id.toString() === selectedPortfolio)
-      if (portfolio) {
-        await portfolioApi.update(selectedPortfolio, {
-          total_value: Math.max(0, (portfolio.total_value || 0) - withdrawAmount),
-        })
-      }
-
-      setBalance(newBalance)
-      setTransactions(prev => [
-        { 
-          id: Date.now(), 
-          type: 'withdrawal', 
-          amount: withdrawAmount, 
-          date: new Date().toISOString(), 
-          status: 'completed' 
-        },
-        ...prev
-      ])
-
+      await walletApi.withdraw(withdrawAmount, 'Withdrawal from investment wallet')
+      
       toast.success(`Successfully withdrew $${withdrawAmount.toLocaleString()}`)
       setAmount('')
-      fetchUserData() // Refresh data
+      fetchWalletData()
     } catch (error) {
       console.error('Withdrawal error:', error)
       toast.error('Failed to process withdrawal')
@@ -177,7 +129,25 @@ export default function DepositWithdraw() {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     })
+  }
+
+  const getTransactionIcon = (type) => {
+    switch (type) {
+      case 'deposit':
+        return <ArrowDownLeft className="w-5 h-5" />
+      case 'withdraw':
+      case 'withdrawal':
+        return <ArrowUpRight className="w-5 h-5" />
+      case 'trade_buy':
+        return <TrendingUp className="w-5 h-5" />
+      case 'trade_sell':
+        return <ArrowDownLeft className="w-5 h-5" />
+      default:
+        return <History className="w-5 h-5" />
+    }
   }
 
   if (isFetching) {
@@ -200,24 +170,53 @@ export default function DepositWithdraw() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold font-display mb-2">Deposit & Withdraw</h1>
-          <p className="text-gray-400">Manage your fake investment funds</p>
+          <h1 className="text-3xl font-bold font-display mb-2">Wallet</h1>
+          <p className="text-gray-400">Manage your simulated investment funds</p>
         </motion.div>
 
-        {/* Balance Card */}
+        {/* Balance Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="glass-card p-6 mb-8"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Wallet className="w-7 h-7 text-primary" />
+          {/* Available Balance */}
+          <div className="glass-card p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Wallet className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Available Balance</p>
+                <p className="text-2xl font-bold font-display">${walletBalance.balance.toLocaleString()}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-400 text-sm">Available Balance</p>
-              <p className="text-3xl font-bold font-display">${balance.toLocaleString()}</p>
+          </div>
+
+          {/* Total Deposited */}
+          <div className="glass-card p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                <ArrowDownLeft className="w-6 h-6 text-success" />
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Total Deposited</p>
+                <p className="text-2xl font-bold font-display text-success">${walletBalance.total_deposited.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Total Invested */}
+          <div className="glass-card p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-secondary" />
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Total Invested</p>
+                <p className="text-2xl font-bold font-display text-secondary">${walletBalance.total_invested.toLocaleString()}</p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -256,26 +255,6 @@ export default function DepositWithdraw() {
               </button>
             </div>
 
-            {/* Portfolio Selection */}
-            {portfolios.length > 0 && (
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Select Portfolio
-                </label>
-                <select
-                  value={selectedPortfolio}
-                  onChange={(e) => setSelectedPortfolio(e.target.value)}
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition-colors"
-                >
-                  {portfolios.map((portfolio) => (
-                    <option key={portfolio.id} value={portfolio.id}>
-                      {portfolio.name} - ${(portfolio.total_value || 0).toLocaleString()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             {/* Amount Input */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -289,6 +268,7 @@ export default function DepositWithdraw() {
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
                   min="0"
+                  max="1000000"
                   step="0.01"
                   className="w-full pl-8 pr-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary transition-colors"
                 />
@@ -313,7 +293,7 @@ export default function DepositWithdraw() {
               <div className="flex items-start gap-3 p-4 bg-danger/10 rounded-lg mb-6">
                 <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-gray-300">
-                  Withdrawals are limited to your available balance. This is a simulation with fake money.
+                  Withdrawals are limited to your available balance. This is a simulation with simulated money.
                 </p>
               </div>
             )}
@@ -321,7 +301,7 @@ export default function DepositWithdraw() {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              disabled={isLoading || !amount}
+              disabled={isLoading || !amount || (activeTab === 'withdraw' && parseFloat(amount) > walletBalance.balance)}
               className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 ${
                 activeTab === 'deposit'
                   ? 'bg-success text-dark hover:bg-success/90'
@@ -365,7 +345,7 @@ export default function DepositWithdraw() {
                 <p>No transactions yet</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {transactions.map((transaction) => (
                   <div
                     key={transaction.id}
@@ -376,27 +356,29 @@ export default function DepositWithdraw() {
                         className={`w-10 h-10 rounded-full flex items-center justify-center ${
                           transaction.type === 'deposit'
                             ? 'bg-success/20 text-success'
-                            : 'bg-danger/20 text-danger'
+                            : transaction.type === 'withdraw' || transaction.type === 'withdrawal'
+                            ? 'bg-danger/20 text-danger'
+                            : transaction.type === 'trade_buy'
+                            ? 'bg-secondary/20 text-secondary'
+                            : 'bg-primary/20 text-primary'
                         }`}
                       >
-                        {transaction.type === 'deposit' ? (
-                          <ArrowDownLeft className="w-5 h-5" />
-                        ) : (
-                          <ArrowUpRight className="w-5 h-5" />
-                        )}
+                        {getTransactionIcon(transaction.type)}
                       </div>
                       <div>
-                        <p className="font-medium capitalize">{transaction.type}</p>
-                        <p className="text-sm text-gray-500">{formatDate(transaction.date)}</p>
+                        <p className="font-medium capitalize">{transaction.type.replace(/_/g, ' ')}</p>
+                        <p className="text-sm text-gray-500">{formatDate(transaction.created_at)}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p
                         className={`font-semibold ${
-                          transaction.type === 'deposit' ? 'text-success' : 'text-danger'
+                          transaction.type === 'deposit' || transaction.type === 'trade_sell'
+                            ? 'text-success'
+                            : 'text-danger'
                         }`}
                       >
-                        {transaction.type === 'deposit' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                        {transaction.type === 'deposit' || transaction.type === 'trade_sell' ? '+' : '-'}${transaction.amount.toLocaleString()}
                       </p>
                       <div className="flex items-center gap-1 text-sm text-success">
                         <CheckCircle className="w-3 h-3" />

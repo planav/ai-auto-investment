@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class PortfolioHoldingBase(BaseModel):
     symbol: str
     asset_type: str = Field(..., pattern="^(stock|crypto|etf|gold|cash)$")
+    sector: Optional[str] = None
     weight: float = Field(..., ge=0.0, le=1.0)
     quantity: float = Field(..., ge=0.0)
     avg_price: float = Field(..., ge=0.0)
@@ -38,6 +39,7 @@ class PortfolioBase(BaseModel):
 
 
 class PortfolioCreate(PortfolioBase):
+    risk_profile: str = Field(default="moderate", pattern="^(conservative|moderate|aggressive)$")
     model_type: str = "temporal_fusion_transformer"
     investment_amount: float = Field(..., gt=0.0)
 
@@ -53,6 +55,8 @@ from datetime import datetime
 class PortfolioResponse(PortfolioBase):
     id: int
     user_id: int
+    risk_profile: str
+    invested_amount: float
     model_type: str
     expected_return: Optional[float] = None
     volatility: Optional[float] = None
@@ -102,6 +106,37 @@ class RebalanceRecommendation(BaseModel):
     recommendations: List[Dict] = []
     expected_transactions: int = 0
     estimated_cost: float = 0.0
+
+
+# Portfolio Transaction Schema
+class PortfolioTransactionResponse(BaseModel):
+    id: int
+    portfolio_id: int
+    transaction_type: str
+    symbol: Optional[str] = None
+    quantity: Optional[float] = None
+    price: Optional[float] = None
+    amount: float
+    description: Optional[str] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Investment Request Schema (for creating portfolio from wallet)
+class InvestmentRequest(BaseModel):
+    amount: float = Field(..., gt=0, description="Amount to invest from wallet")
+    risk_tolerance: str = Field(..., pattern="^(conservative|moderate|aggressive)$", description="Risk tolerance level")
+    name: Optional[str] = Field(None, description="Portfolio name (auto-generated if not provided)")
+    description: Optional[str] = Field(None, description="Portfolio description")
+
+
+# Investment Response Schema
+class InvestmentResponse(BaseModel):
+    portfolio: PortfolioResponse
+    wallet_balance: float
+    message: str
 
 
 # System Stats Schema

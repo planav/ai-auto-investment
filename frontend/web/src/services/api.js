@@ -89,6 +89,20 @@ export const portfolioApi = {
   analyze: (data) => api.post('/portfolios/analyze', data),
 }
 
+// Dashboard API
+export const dashboardApi = {
+  getDashboard: () => api.get('/dashboard'),
+}
+
+// Wallet API
+export const walletApi = {
+  getBalance: () => api.get('/wallet'),
+  deposit: (amount, description) => api.post('/wallet/deposit', { amount, description }),
+  withdraw: (amount, description) => api.post('/wallet/withdraw', { amount, description }),
+  getTransactions: (page = 1, pageSize = 20) => 
+    api.get(`/wallet/transactions?page=${page}&page_size=${pageSize}`),
+}
+
 // Analysis API
 export const analysisApi = {
   analyzeAssets: (data) => api.post('/analysis/assets', data),
