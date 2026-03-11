@@ -3,6 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi import FastAPI
+from app.routers import gemini
+
 from app.api.routes import router
 from app.core.config import get_settings
 
@@ -26,6 +29,7 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs" if settings.is_development else None,
     redoc_url="/redoc" if settings.is_development else None,
+    app.include_router(gemini.router, prefix="/api", tags=["Gemini"])
 )
 
 # CORS middleware - MUST be added before routes
