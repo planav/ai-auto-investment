@@ -6,6 +6,7 @@ from app.routers import gemini
 from app.api.routes import router
 from app.core.config import get_settings
 from app.routers import backtest
+from app.routers import stream
 
 settings = get_settings()
 
@@ -33,8 +34,11 @@ app.include_router(gemini.router, prefix="/api", tags=["Gemini"])
 #  Register your existing API routes
 app.include_router(router, prefix="/api")
 
-#register router
+#register backtest routers
 app.include_router(backtest.router, prefix="/api", tags=["Backtest"])
+
+#register streaming routers
+app.include_router(stream.router, prefix="/api", tags=["Streaming"])
 
 # CORS middleware
 app.add_middleware(
