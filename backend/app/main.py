@@ -1,16 +1,12 @@
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi import FastAPI
 from app.routers import gemini
-
 from app.api.routes import router
 from app.core.config import get_settings
 
 settings = get_settings()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,7 +17,6 @@ async def lifespan(app: FastAPI):
     # Shutdown
     print(f"Shutting down {settings.app_name}")
 
-
 app = FastAPI(
     title=settings.app_name,
     description="AI-powered auto-investment platform with deep learning models",
@@ -29,13 +24,23 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs" if settings.is_development else None,
     redoc_url="/redoc" if settings.is_development else None,
-    app.include_router(gemini.router, prefix="/api", tags=["Gemini"])
 )
 
-# CORS middleware - MUST be added before routes
+# ✅ Register Gemini router here (not inside FastAPI constructor)
+app.include_router(gemini.router, prefix="/api", tags=["Gemini"])
+
+# ✅ Register your existing API routes
+app.include_router(router, prefix="/api")
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174"
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
@@ -43,29 +48,21 @@ app.add_middleware(
     max_age=600,
 )
 
-# Include routers
-app.include_router(router, prefix="/api")
-
-
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
     return {
         "status": "healthy",
         "app": settings.app_name,
         "environment": settings.environment,
     }
 
-
 @app.get("/")
 async def root():
-    """Root endpoint."""
     return {
         "message": f"Welcome to {settings.app_name}",
         "docs": "/docs",
         "health": "/health",
     }
-
 
 if __name__ == "__main__":
     import uvicorn
