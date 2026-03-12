@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import gemini
 from app.api.routes import router
 from app.core.config import get_settings
+from app.routers import backtest
 
 settings = get_settings()
 
@@ -26,11 +27,14 @@ app = FastAPI(
     redoc_url="/redoc" if settings.is_development else None,
 )
 
-# ✅ Register Gemini router here (not inside FastAPI constructor)
+#  Register Gemini router here (not inside FastAPI constructor)
 app.include_router(gemini.router, prefix="/api", tags=["Gemini"])
 
-# ✅ Register your existing API routes
+#  Register your existing API routes
 app.include_router(router, prefix="/api")
+
+#register router
+app.include_router(backtest.router, prefix="/api", tags=["Backtest"])
 
 # CORS middleware
 app.add_middleware(
