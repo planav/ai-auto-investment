@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # Portfolio Holding Schemas
@@ -39,6 +39,7 @@ class PortfolioBase(BaseModel):
 
 
 class PortfolioCreate(PortfolioBase):
+    model_config = ConfigDict(protected_namespaces=())
     risk_profile: str = Field(
         default="moderate", pattern="^(conservative|moderate|aggressive)$"
     )
@@ -56,6 +57,7 @@ from datetime import datetime
 
 
 class PortfolioResponse(PortfolioBase):
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
     id: int
     user_id: int
     risk_profile: str
@@ -72,12 +74,10 @@ class PortfolioResponse(PortfolioBase):
     updated_at: datetime
     holdings: List[PortfolioHoldingResponse] = []
 
-    class Config:
-        from_attributes = True
-
 
 # Portfolio Analysis Request
 class PortfolioAnalysisRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     investment_amount: float = Field(..., gt=0.0)
     risk_tolerance: str = Field(..., pattern="^(conservative|moderate|aggressive)$")
     investment_horizon: int = Field(..., ge=1, le=30)
@@ -150,6 +150,7 @@ class InvestmentResponse(BaseModel):
 
 # System Stats Schema
 class SystemStats(BaseModel):
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
     assets_analyzed: int = Field(
         default=0, description="Total number of assets in database"
     )
@@ -165,6 +166,3 @@ class SystemStats(BaseModel):
     model_status: Dict[str, str] = Field(
         default_factory=dict, description="Training status for each model"
     )
-
-    class Config:
-        from_attributes = True

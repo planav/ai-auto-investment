@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Line } from "react-chartjs-2";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function BacktestPanel() {
   const [result, setResult] = useState(null);
@@ -21,6 +21,13 @@ export default function BacktestPanel() {
     setResult(data);
   };
 
+  const chartData = result
+    ? result.dates.map((date, i) => ({
+        date,
+        value: result.cumulative_returns[i],
+      }))
+    : [];
+
   return (
     <div className="p-4 border rounded shadow">
       <button onClick={runBacktest} className="bg-green-500 text-white px-4 py-2 rounded">
@@ -34,19 +41,21 @@ export default function BacktestPanel() {
           <p>Sortino Ratio: {result.sortino_ratio.toFixed(2)}</p>
           <p>Max Drawdown: {(result.max_drawdown * 100).toFixed(2)}%</p>
 
-          <Line
-            data={{
-              labels: result.dates,
-              datasets: [
-                {
-                  label: "Cumulative Returns",
-                  data: result.cumulative_returns,
-                  borderColor: "blue",
-                  fill: false,
-                },
-              ],
-            }}
-          />
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#2563eb"
+                name="Cumulative Returns"
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       )}
     </div>

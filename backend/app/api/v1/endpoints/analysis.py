@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.deps import get_current_user
 from app.models.user import User
@@ -28,6 +28,7 @@ class AssetSignalResponse(BaseModel):
 
 
 class BacktestRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     symbols: List[str] = Field(..., min_items=1, max_items=50)
     start_date: str  # YYYY-MM-DD
     end_date: str  # YYYY-MM-DD

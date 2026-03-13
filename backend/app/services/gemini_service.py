@@ -1,4 +1,3 @@
-import requests
 import asyncio
 from typing import AsyncGenerator
 import google.generativeai as genai
@@ -6,10 +5,12 @@ from app.core.config import get_settings
 from app.core.cache import cache
 
 settings = get_settings()
-GEMINI_URL = "https://api.gemini.com/v1/query"
 
 # Configure Gemini SDK
 genai.configure(api_key=settings.gemini_api_key)
+
+# Initialize the model once at module level
+_gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 
 def query_gemini(user_query: str):
     # Check cache
@@ -17,16 +18,12 @@ def query_gemini(user_query: str):
     if cached:
         return {"result": cached, "cached": True}
 
-    # Call Gemini REST API (basic query)
-    response = requests.post(
-        GEMINI_URL,
-        headers={"Authorization": f"Bearer {settings.gemini_api_key}"},
-        json={"input": user_query}
-    )
-    result = response.json()
+    # Use Gemini SDK for querying
+    response = _gemini_model.generate_content(user_query)
+    result = response.text if hasattr(response, "text") else str(response)
 
     # Store in cache (1 hour expiry)
-    cache.set(user_query, str(result), ex=3600)
+    cache.set(user_query, result, ex=3600)
 
     return {
         "result": result,
@@ -38,10 +35,8 @@ async def stream_gemini(user_query: str) -> AsyncGenerator[dict, None]:
     """
     Async generator that streams Gemini responses using the official SDK.
     """
-    model = genai.GenerativeModel("gemini-1.5-flash")
-
     # Start streaming
-    response = model.generate_content(user_query, stream=True)
+    response = _gemini_model.generate_content(user_query, stream=True)
 
     for chunk in response:
         if hasattr(chunk, "text") and chunk.text:
