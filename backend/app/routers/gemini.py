@@ -1,17 +1,20 @@
-from fastapi import APIRouter, Request, WebSocket
+from fastapi import APIRouter, WebSocket
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from app.services.gemini_service import query_gemini, stream_gemini
 
 router = APIRouter()
 
+# Define request schema
+class GeminiQueryRequest(BaseModel):
+    query: str
+
 @router.post("/gemini-query")
-async def gemini_query(request: Request):
+async def gemini_query(request: GeminiQueryRequest):
     """
     Handle synchronous Gemini queries.
     """
-    data = await request.json()
-    query = data.get("query")
-    result = query_gemini(query)
+    result = query_gemini(request.query)
     return JSONResponse(content=result)
 
 @router.websocket("/gemini-stream")
