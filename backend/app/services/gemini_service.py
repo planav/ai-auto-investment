@@ -44,7 +44,6 @@ async def stream_gemini(user_query: str) -> AsyncGenerator[dict, None]:
     response = model.generate_content(user_query, stream=True)
 
     for chunk in response:
-        if chunk.text:
-            # Yield each chunk as JSON
+        if hasattr(chunk, "text") and chunk.text:
             yield {"response": chunk.text}
         await asyncio.sleep(0)  # allow event loop to switch
