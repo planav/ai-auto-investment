@@ -47,3 +47,20 @@ async def stream_gemini(user_query: str) -> AsyncGenerator[dict, None]:
         if hasattr(chunk, "text") and chunk.text:
             yield {"response": chunk.text}
         await asyncio.sleep(0)  # allow event loop to switch
+
+import asyncio
+from typing import AsyncGenerator
+import google.generativeai as genai
+
+async def stream_gemini(user_query: str) -> AsyncGenerator[dict, None]:
+    """
+    Async generator that streams Gemini responses using the official SDK.
+    """
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    response = model.generate_content(user_query, stream=True)
+
+    for chunk in response:
+        if hasattr(chunk, "text") and chunk.text:
+            yield {"response": chunk.text}
+        await asyncio.sleep(0)  # let event loop switch
+
