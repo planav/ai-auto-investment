@@ -148,7 +148,7 @@ For detailed architecture documentation, see [`plans/system-architecture.md`](pl
 - **Framework:** FastAPI 0.109 (Python 3.10+)
 - **Database:** PostgreSQL 15 with SQLAlchemy ORM
 - **Cache:** Redis 7
-- **Authentication:** JWT with bcrypt password hashing
+- **Authentication:** JWT with Argon2 password hashing
 - **Data Processing:** Pandas, NumPy, SciPy
 - **Machine Learning:** PyTorch, Scikit-learn
 - **API Client:** httpx, aiohttp (async)
@@ -353,23 +353,21 @@ This project provides foundation for research papers in:
 
 ## 📸 Screenshots
 
-### Dashboard
-![Dashboard](screenshots/dashboard.png)
-*Real-time market data, portfolio overview, and AI insights*
+### Registration Form
+![Registration](screenshots/register_form.png)
+*User registration interface*
 
-### Portfolio Management
-![Portfolio](screenshots/portfolio.png)
-*Detailed holdings view with AI signals and confidence scores*
+### Registration Attempt
+![Registration Attempt](screenshots/registration_attempt.png)
+*Registration form in action*
 
-### Portfolio Management
-![Portfolio](screenshots/portfolio.png)
-*Detailed holdings view with AI signals and confidence scores*
+### Registration Validation
+![Registration Error](screenshots/registration_error.png)
+*Form validation and error feedback*
 
 ---
 
-### Registration
-![Registration](screenshots/register_form.png)
-*User registration interface*
+## 🤝 Contributing
 
 We welcome contributions from the community! Here's how you can help:
 
@@ -442,8 +440,6 @@ For questions, suggestions, or collaboration opportunities:
 ## 🌟 Star History
 
 If you find this project useful, please consider giving it a star ⭐
-
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/autoinvest&type=Date)](https://star-history.com/#yourusername/autoinvest&Date)
 
 ---
 
