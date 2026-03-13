@@ -113,8 +113,6 @@ async def get_batch_quotes(
 
 @router.get("/popular", response_model=List[QuoteResponse])
 async def get_popular_stocks(
-@router.get("/popular", response_model=List[QuoteResponse])
-async def get_popular_stocks(
     current_user: User = Depends(get_current_user_optional),
 ) -> Any:
     """Get quotes for popular stocks (public endpoint)."""
@@ -137,8 +135,6 @@ async def get_popular_stocks(
     ]
 
 
-@router.get("/overview", response_model=MarketOverviewResponse)
-async def get_market_overview(
 @router.get("/overview", response_model=MarketOverviewResponse)
 async def get_market_overview(
     current_user: User = Depends(get_current_user_optional),

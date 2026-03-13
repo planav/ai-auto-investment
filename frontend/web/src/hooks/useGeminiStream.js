@@ -5,33 +5,36 @@ export function useGeminiStream() {
   const [output, setOutput] = useState("");
   const [error, setError] = useState(null);
 
-  const runStream = async (query) => {
+  const runStream = (query) => {
     setLoading(true);
     setOutput("");
     setError(null);
 
-    try {
-      const response = await fetch("http://localhost:8000/api/gemini-stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
-      });
+    const ws = new WebSocket("ws://localhost:8000/api/gemini-stream");
 
-      if (!response.body) throw new Error("No stream available");
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ query }));
+    };
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        setOutput((prev) => prev + decoder.decode(value));
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.response) {
+          setOutput((prev) => prev + data.response);
+        }
+      } catch {
+        setOutput((prev) => prev + event.data);
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
+    };
+
+    ws.onerror = () => {
+      setError("WebSocket connection error");
       setLoading(false);
-    }
+    };
+
+    ws.onclose = () => {
+      setLoading(false);
+    };
   };
 
   return { runStream, output, loading, error };

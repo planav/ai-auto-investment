@@ -8,6 +8,7 @@ from app.api.routes import router
 from app.core.config import get_settings
 from app.routers import backtest
 from app.routers import stream
+from app.routers import model
 
 settings = get_settings()
 
@@ -42,6 +43,9 @@ app.include_router(backtest.router, prefix="/api", tags=["Backtest"])
 
 # register streaming routers
 app.include_router(stream.router, prefix="/api", tags=["Streaming"])
+
+# register model routers
+app.include_router(model.router, prefix="/api/model", tags=["Model"])
 
 # CORS middleware
 app.add_middleware(

@@ -89,8 +89,6 @@ export const portfolioApi = {
   analyze: (data) => api.post('/portfolios/analyze', data),
 }
 
-}
-
 // Dashboard API
 export const dashboardApi = {
   getDashboard: () => api.get('/dashboard'),
