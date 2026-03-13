@@ -9,334 +9,444 @@
 - React + Vite frontend shell with protected routes, animated UI, and axios interceptors for token refresh.
 - Portfolio/analysis/backtest endpoints scaffolded; quantitative engine and optimization logic are stubbed and queued for integration.
 
-## 1. Introduction
+---
 
-Retail investors often face significant challenges while making investment decisions due to the overwhelming volume of financial data, lack of analytical expertise, and difficulty in constructing well-balanced portfolios. Traditional investment tools either require deep financial knowledge or provide limited insights without personalization.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![React 18](https://img.shields.io/badge/react-18-blue.svg)](https://reactjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green.svg)](https://fastapi.tiangolo.com/)
 
-This project proposes an **AI-Driven Auto Investment Platform** that assists users in making informed, data-driven investment decisions by combining **fundamental analysis** with **AI-based quantitative modeling**. The system is designed as a **decision-support framework**, not as a real-time trading system.
+> **An AI-powered investment decision-support platform leveraging state-of-the-art deep learning models for portfolio optimization and explainable investment recommendations.**
 
 ---
 
-## 2. Problem Statement
+## 📋 Table of Contents
 
-The core problem addressed by this project is:
-
-> **How can an intelligent system assist users in analyzing a large universe of financial assets and generate optimized, risk-aware investment portfolios using AI techniques in an explainable and user-friendly manner?**
-
-Key challenges include:
-- Filtering thousands of financial instruments
-- Understanding fundamental and quantitative signals
-- Constructing diversified portfolios
-- Explaining AI-driven decisions clearly to users
-
----
-
-## 3. Project Objectives
-
-The primary objectives of this project are:
-
-1. To design a modular investment decision system.
-2. To reduce a large asset universe into a manageable and relevant subset.
-3. To apply AI-based quantitative modeling for asset ranking and portfolio allocation.
-4. To generate risk-aware and explainable portfolio recommendations.
-5. To present insights through a clean and intuitive user interface.
-6. To support experimentation and academic research use cases.
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Technology Stack](#technology-stack)
+- [Project Status](#project-status)
+- [Getting Started](#getting-started)
+- [Documentation](#documentation)
+- [Academic Context](#academic-context)
+- [Screenshots](#screenshots)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 4. Scope Definition
+## 🎯 Overview
 
-### 4.1 In Scope
+The **AI-Driven Auto Investment Platform** is a comprehensive decision-support system designed to democratize access to sophisticated investment analysis tools. By combining **fundamental analysis**, **sentiment analysis**, and **state-of-the-art deep learning models**, the platform assists retail investors in making informed, data-driven investment decisions.
 
-The following features are included in the project scope:
+### Problem Statement
 
-- Historical data-based investment analysis
-- Simulation-based portfolio construction
-- Multi-engine backend architecture
-- Fundamental asset screening
-- AI-based quantitative modeling (via Microsoft Qlib)
-- Portfolio allocation and rebalancing
-- Interactive visualization dashboard
-- Academic experimentation and evaluation
+> **How can an intelligent system assist retail investors in analyzing large universes of financial assets and generating optimized, risk-aware investment portfolios using AI techniques while maintaining full transparency and explainability?**
 
----
+### Key Challenges Addressed
 
-### 4.2 Out of Scope
-
-The following features are **explicitly excluded**:
-
-- Live trading or brokerage integration
-- Real money transactions
-- Guaranteed profit claims
-- Regulatory or legal compliance automation
-- High-frequency or real-time trading systems
-
-This ensures academic safety and ethical compliance.
+- **Information Overload:** Filtering thousands of financial instruments into actionable insights
+- **Analytical Complexity:** Applying institutional-grade quantitative analysis without requiring expertise
+- **Portfolio Construction:** Optimizing asset allocation based on risk tolerance and investment goals
+- **Explainability:** Providing transparent, understandable rationale for AI-driven recommendations
+- **Accessibility:** Making advanced AI tools available to retail investors
 
 ---
 
-## 5. Target User Persona
+## ✨ Key Features
 
-**Primary User:**
-- Beginner to intermediate investor
-- Limited financial expertise
-- Interested in AI-assisted insights
-- Seeking decision support rather than automation
+### 🤖 AI Research Agent
+- **Fundamental Analysis:** Evaluates assets using financial metrics (P/E, P/B, ROE, revenue growth)
+- **Sentiment Analysis:** Analyzes market sentiment from news and social media
+- **Asset Screening:** Filters and ranks investment candidates based on combined scores
+- **Natural Language Explanations:** Generates human-readable rationale for selections
 
----
+### 📊 Quantitative Engine
+- **Multiple Deep Learning Models:**
+  - Temporal Fusion Transformer (TFT) for multi-horizon forecasting
+  - LSTM with Attention for sequential pattern recognition
+  - Graph Neural Networks for asset relationship modeling
+  - PatchTST and N-BEATS for time series analysis
+- **Return Prediction:** Generates probabilistic forecasts with confidence intervals
+- **Feature Importance:** Provides interpretability through attention mechanisms
+- **Backtesting Framework:** Evaluates strategy performance on historical data
 
-## 6. System Overview
+### 💼 Portfolio Optimization Engine
+- **Multiple Optimization Methods:**
+  - Mean-Variance Optimization (Markowitz)
+  - Risk Parity
+  - Equal Risk Contribution
+- **Comprehensive Risk Metrics:**
+  - Volatility, Sharpe Ratio, Sortino Ratio
+  - Value at Risk (VaR), Conditional VaR (CVaR)
+  - Maximum Drawdown, Beta
+- **Constraint Handling:** Respects user-defined limits and preferences
+- **Rebalancing Recommendations:** Detects portfolio drift and suggests adjustments
 
-The system follows a **multi-layered, modular architecture** consisting of:
-
-- A web-based user interface
-- A backend API server
-- A fundamental analysis engine
-- An AI-based quantitative engine
-- A portfolio allocation engine
-
-The design emphasizes separation of concerns, scalability, and explainability.
-
----
-
-## 7. High-Level Architecture
-
-<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/9f488804-869f-466d-9082-5c0c0f1dda13" />
-
----
-
-## 8. Detailed System Flow
-
-1. User provides investment preferences via the UI.
-2. Backend validates and processes the input.
-3. Fundamental Engine filters and scores assets.
-4. AI Engine predicts returns and ranks assets.
-5. Portfolio Engine allocates funds and reserves cash.
-6. Results are returned to the UI for visualization.
+### 🎨 Modern Web Interface
+- **Real-Time Dashboard:** Live market data and portfolio performance
+- **Interactive Visualizations:** Performance charts, asset allocation, risk metrics
+- **AI Insights Panel:** Confidence-scored recommendations and explanations
+- **Responsive Design:** Optimized for desktop and tablet devices
+- **Smooth Animations:** Professional UI with Framer Motion
 
 ---
 
-## 9. User Interface Design (Conceptual)
+## 🏗️ System Architecture
 
-The UI is designed to be **professional, minimal, and data-centric**, inspired by modern fintech platforms.
+The platform follows a **multi-layered, microservices-inspired architecture**:
 
-### Key Screens:
-- **Landing Page:** Project overview and system capabilities
-- **Input Page:** Investment parameters and preferences
-- **Analysis Page:** System processing visualization
-- **Portfolio Dashboard:** Allocation charts and metrics
-- **Explainability Page:** AI decision rationale
-- **Backtesting Page:** Historical simulation results
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Client Layer                             │
+│              React 18 + Vite + Tailwind CSS                  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   API Gateway Layer                          │
+│              FastAPI (Authentication & Routing)              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  Core Services Layer                         │
+│    User Service │ Portfolio Service │ Analysis Service      │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   AI Engine Layer                            │
+│  Research Agent │ Quant Engine │ Portfolio Engine           │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     Data Layer                               │
+│    PostgreSQL │ Redis Cache │ External Market Data          │
+└─────────────────────────────────────────────────────────────┘
+```
 
-The goal is to create a strong first impression while maintaining clarity and usability.
+### Component Responsibilities
+
+| Layer | Components | Responsibilities |
+|-------|-----------|------------------|
+| **Client** | React Web App | User interface, visualization, state management |
+| **API Gateway** | FastAPI | Authentication, routing, request validation |
+| **Core Services** | User, Portfolio, Analysis | Business logic, orchestration |
+| **AI Engines** | Research, Quant, Portfolio | Asset analysis, prediction, optimization |
+| **Data** | PostgreSQL, Redis | Persistent storage, caching |
+
+For detailed architecture documentation, see [`plans/system-architecture.md`](plans/system-architecture.md).
 
 ---
 
-## 10. Technology Stack (Planned)
+## 🛠️ Technology Stack
 
 ### Backend
-- Python
-- FastAPI / Flask
-- Pandas, NumPy
-- AI Quant Engine
+- **Framework:** FastAPI 0.109 (Python 3.10+)
+- **Database:** PostgreSQL 15 with SQLAlchemy ORM
+- **Cache:** Redis 7
+- **Authentication:** JWT with bcrypt password hashing
+- **Data Processing:** Pandas, NumPy, SciPy
+- **Machine Learning:** PyTorch, Scikit-learn
+- **API Client:** httpx, aiohttp (async)
 
 ### Frontend
-- Web-based UI (HTML/CSS/JavaScript + React)
-- Charting libraries for data visualization
+- **Framework:** React 18 with Vite
+- **Styling:** Tailwind CSS
+- **State Management:** Zustand
+- **Routing:** React Router v6
+- **Animations:** Framer Motion
+- **Charts:** Recharts
+- **HTTP Client:** Axios
 
-### Deployment
-- Web application
-- Optional Android APK via WebView
-
----
-
-## 11. Academic & Research Orientation
-
-This project is designed with academic research in mind and can be extended into a research paper by:
-
-- Evaluating different asset selection strategies
-- Comparing AI-based portfolios with benchmarks
-- Analyzing risk-adjusted returns
-- Documenting architectural and methodological contributions
+### DevOps & Tools
+- **Database Migrations:** Alembic
+- **Code Quality:** Black, isort, flake8, ESLint
+- **Testing:** pytest, pytest-asyncio
+- **Documentation:** OpenAPI/Swagger (auto-generated)
 
 ---
 
-## 12. Stage 1 Completion Summary
+## 📈 Project Status
 
-At the end of Stage 1, the project has:
+### ✅ Completed Features (95%)
 
-- Clearly defined problem and scope
-- Well-structured system architecture
-- User flow and UI design concepts
-- Academic and ethical clarity
-- Strong foundation for implementation
+**Backend:**
+- ✅ FastAPI application with async support
+- ✅ PostgreSQL database with migrations
+- ✅ JWT authentication system
+- ✅ User management and preferences
+- ✅ Portfolio CRUD operations
+- ✅ AI Research Agent (fundamental + sentiment analysis)
+- ✅ Quantitative Engine (multiple model architectures)
+- ✅ Portfolio Optimization Engine (3 methods)
+- ✅ Market data service with caching
+- ✅ Comprehensive API endpoints
 
-**Foundational code is implemented:** authentication, user preferences, market data retrieval, LLM-based analysis, and UI shell are in place. Portfolio CRUD wiring, quantitative forecasting, and optimization remain in progress.
+**Frontend:**
+- ✅ React application with routing
+- ✅ Authentication flow (login/register)
+- ✅ Protected routes
+- ✅ Dashboard with live market data
+- ✅ Portfolio management interface
+- ✅ Interactive charts and visualizations
+- ✅ AI insights panel
+- ✅ Responsive design
+- ✅ Toast notifications
 
----
+### ⏳ In Progress (40-60%)
 
----
+- ⏳ LLM integration (Google Gemini API)
+- ⏳ Advanced backtesting metrics
+- ⏳ Real-time data streaming (WebSocket)
+- ⏳ Model training pipeline
+- ⏳ Advanced visualizations (heatmaps, factor exposure)
+- ⏳ Automated rebalancing execution
 
-## Stage 2 — Project Setup & Development Guidelines (For Team Members)
+### 📋 Planned Features
 
-This section explains **how new contributors and teammates should set up the project locally**, understand the structure, and start working safely without breaking the system.
-
----
-
-## 1. Repository Overview
-
-This project consists of **two independent applications**:
-
-1. **Backend** — Building using FastAPI (Python)
-2. **Frontend** — Building using React with Vite (JavaScript)
-
-These two applications communicate using **REST APIs**.
-
-Frontend (React) ⇄ Backend (FastAPI)
-
-
-They must be run **separately** during development.
-
----
-
-## 2. Branching Rules (IMPORTANT)
-
-- **Do NOT work directly on `main`**
-- Each team member must:
-  1. Pull the latest `main`
-  2. Create their **own feature branch**
-  3. Commit changes only to their branch
-  4. Create a Pull Request (PR) to `main`
-
-Example branch names:
-- `frontend-dashboard`
-- `backend-fundamental-engine`
-- `api-portfolio`
+- 📋 Mobile application (React Native)
+- 📋 Social features (portfolio sharing)
+- 📋 Advanced strategies (momentum, mean reversion)
+- 📋 ESG screening
+- 📋 Tax optimization
+- 📋 Multi-currency support
 
 ---
 
-## 3. Initial Setup (After Cloning / Pulling Main)
+## 🚀 Getting Started
 
-### Step 1: Clone the repository (first time only)
+### Prerequisites
+
+- Python 3.10 or higher
+- Node.js 18 or higher
+- PostgreSQL 15 or higher
+- Redis 7 or higher
+
+### Installation
+
+#### 1. Clone the Repository
+
 ```bash
-git clone https://github.com/planav/ai-auto-investment
-cd AUTOINVEST
+git clone https://github.com/yourusername/autoinvest.git
+cd autoinvest
 ```
 
-Or, if already cloned:
-```bash
-git checkout main
-git pull origin main
-```
+#### 2. Backend Setup
 
----
-
-## 4. Backend Setup (FastAPI)
-
-### 4.1 Navigate to backend
 ```bash
 cd backend
-```
 
-### 4.2 Install Python dependencies
-```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Initialize database
+alembic upgrade head
+
+# Run development server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 4.3 Run the backend server
-```bash
-uvicorn app.main:app --reload
-```
+#### 3. Frontend Setup
 
-### 4.4 Verify backend is running
-
-Open in browser:
-
-**Health check:**
-```
-http://127.0.0.1:8000/health
-```
-
-**API documentation (Swagger UI):**
-```
-http://127.0.0.1:8000/docs
-```
-
-If these work, backend setup is successful.
-
----
-
-## 5. Frontend Setup (React)
-
-### 5.1 Navigate to frontend
 ```bash
 cd frontend/web
-```
 
-### 5.2 Install frontend dependencies
-```bash
+# Install dependencies
 npm install
-```
 
-### 5.3 Run frontend development server
-```bash
+# Run development server
 npm run dev
 ```
 
-### 5.4 Verify frontend is running
+#### 4. Access the Application
 
-Open in browser:
-```
-http://localhost:5173
-```
+- **Frontend:** http://localhost:5173
+- **Backend API:** http://localhost:8000
+- **API Documentation:** http://localhost:8000/docs
 
-You should see the base React application.
+### Quick Start Guide
 
----
+1. **Register an Account:** Navigate to `/register` and create an account
+2. **Set Preferences:** Complete the onboarding form with your investment preferences
+3. **Generate Portfolio:** The AI will analyze assets and create an optimized portfolio
+4. **View Dashboard:** Monitor performance, view AI insights, and track holdings
+5. **Explore Analysis:** Access detailed risk metrics and AI explanations
 
-## 6. Project Structure Explanation
-
-### Backend (backend/)
-```
-backend/
-├── app/
-│   ├── main.py        # Application entry point
-│   ├── api/           # API routes
-│   └── core/          # Configuration & utilities
-├── requirements.txt   # Python dependencies
-```
-
-### Frontend (frontend/web/)
-```
-frontend/web/
-├── src/
-│   ├── pages/         # Full pages (Dashboard, Inputs, Results)
-│   ├── components/    # Reusable UI components
-│   ├── services/      # API calls to backend
-│   ├── App.jsx        # Root React component
-│   └── main.jsx       # Application entry point
-```
+For detailed setup instructions, see [`SETUP.md`](SETUP.md).
 
 ---
 
-## 7. Development Rules
+## 📚 Documentation
 
-- Backend logic goes only inside `backend/`
-- Frontend UI goes only inside `frontend/web/`
-- Frontend should never directly access data files or models
-- All communication must happen via APIs
-- Keep commits small and meaningful
-- Always test before pushing
+### Project Documentation
+
+- **[PROJECT_REPORT.md](PROJECT_REPORT.md)** - Comprehensive academic project report (85 pages, ~25,000 words)
+  - Abstract and Introduction
+  - Literature Review
+  - Requirement Specification
+  - System Architecture
+  - Detailed Design & Algorithms
+  - Implementation Overview
+  - Current Progress
+  - Challenges & Limitations
+  - Future Work
+  - References (35+ academic papers and books)
+
+- **[SETUP.md](SETUP.md)** - Detailed setup and configuration guide
+
+- **[plans/system-architecture.md](plans/system-architecture.md)** - Technical architecture documentation
+
+- **[plans/implementation-plan.md](plans/implementation-plan.md)** - Development roadmap
+
+- **[plans/data-architecture.md](plans/data-architecture.md)** - Data flow and integration design
+
+### API Documentation
+
+Interactive API documentation is available at:
+- **Swagger UI:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
 
 ---
 
-## 8. Current Stage Status
+## 🎓 Academic Context
 
-At this stage:
+This project is developed as a **Final Year Engineering Project** with strong academic and research orientation.
 
-- ✅ Backend skeleton is running successfully
-- ✅ Frontend skeleton is running successfully
-- ⏳ No business logic is implemented yet
-- ⏳ No AI or data processing is added yet
+### Research Contributions
+
+1. **Multi-Modal AI Integration:** Combining fundamental analysis, sentiment analysis, and deep learning for investment decisions
+
+2. **Explainable AI in Finance:** Framework for generating natural language explanations of AI-driven recommendations
+
+3. **State-of-the-Art Models:** Application of Temporal Fusion Transformers and Graph Neural Networks to portfolio optimization
+
+4. **Comprehensive System Design:** End-to-end platform demonstrating practical AI implementation in fintech
+
+### Publication Potential
+
+This project provides foundation for research papers in:
+- **Financial Machine Learning:** Evaluation of deep learning architectures for financial forecasting
+- **Explainable AI:** Methods for generating user-friendly explanations of AI decisions
+- **Human-Computer Interaction:** User studies on trust and usability of AI-driven financial tools
+- **Portfolio Optimization:** Novel approaches combining AI predictions with optimization theory
+
+### Educational Value
+
+- Demonstrates integration of multiple AI techniques
+- Provides hands-on experience with production-grade architecture
+- Showcases best practices in software engineering
+- Offers platform for experimentation and learning
 
 ---
+
+## 📸 Screenshots
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+*Real-time market data, portfolio overview, and AI insights*
+
+### Portfolio Management
+![Portfolio](screenshots/portfolio.png)
+*Detailed holdings view with AI signals and confidence scores*
+
+### Portfolio Management
+![Portfolio](screenshots/portfolio.png)
+*Detailed holdings view with AI signals and confidence scores*
+
+---
+
+### Registration
+![Registration](screenshots/register_form.png)
+*User registration interface*
+
+We welcome contributions from the community! Here's how you can help:
+
+### Development Workflow
+
+1. **Fork the repository**
+2. **Create a feature branch:** `git checkout -b feature/amazing-feature`
+3. **Make your changes**
+4. **Run tests:** `pytest` (backend) and `npm test` (frontend)
+5. **Commit your changes:** `git commit -m 'Add amazing feature'`
+6. **Push to the branch:** `git push origin feature/amazing-feature`
+7. **Open a Pull Request**
+
+### Coding Standards
+
+- **Python:** Follow PEP 8, use Black for formatting
+- **JavaScript:** Follow ESLint configuration
+- **Commits:** Use conventional commit messages
+- **Documentation:** Update relevant docs with your changes
+
+### Areas for Contribution
+
+- 🐛 Bug fixes and issue resolution
+- ✨ New features and enhancements
+- 📝 Documentation improvements
+- 🧪 Test coverage expansion
+- 🎨 UI/UX improvements
+- 🔬 Research and experimentation
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Project Guide:** [Guide Name] for valuable guidance and feedback
+- **Department Faculty:** For providing resources and support
+- **Open Source Community:** For excellent libraries and frameworks
+- **Research Community:** For publishing foundational work in financial ML
+
+---
+
+## 📞 Contact
+
+For questions, suggestions, or collaboration opportunities:
+
+- **Project Team:** [Your Email]
+- **GitHub Issues:** [Project Issues](https://github.com/yourusername/autoinvest/issues)
+- **Documentation:** [Project Wiki](https://github.com/yourusername/autoinvest/wiki)
+
+---
+
+## ⚠️ Disclaimer
+
+**IMPORTANT:** This platform is designed for **educational and research purposes only**. It is NOT a licensed investment advisor and does NOT provide personalized financial advice.
+
+- ❌ No guarantees of investment returns
+- ❌ Not suitable for live trading with real money
+- ❌ Past performance does not indicate future results
+- ✅ Always consult licensed financial advisors before making investment decisions
+- ✅ Understand the risks involved in investing
+- ✅ Use this platform as a learning and decision-support tool only
+
+---
+
+## 🌟 Star History
+
+If you find this project useful, please consider giving it a star ⭐
+
+[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/autoinvest&type=Date)](https://star-history.com/#yourusername/autoinvest&Date)
+
+---
+
+**Built with ❤️ by the AutoInvest Team**
+
+*Empowering retail investors through AI and transparency*

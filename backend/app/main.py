@@ -3,8 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers import gemini
 from app.api.routes import router
 from app.core.config import get_settings
+from app.routers import backtest
+from app.routers import stream
 
 settings = get_settings()
 
@@ -28,10 +31,27 @@ app = FastAPI(
     redoc_url="/redoc" if settings.is_development else None,
 )
 
-# CORS middleware - MUST be added before routes
+#  Register Gemini router here (not inside FastAPI constructor)
+app.include_router(gemini.router, prefix="/api", tags=["Gemini"])
+
+#  Register your existing API routes
+app.include_router(router, prefix="/api")
+
+# register backtest routers
+app.include_router(backtest.router, prefix="/api", tags=["Backtest"])
+
+# register streaming routers
+app.include_router(stream.router, prefix="/api", tags=["Streaming"])
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
@@ -39,13 +59,9 @@ app.add_middleware(
     max_age=600,
 )
 
-# Include routers
-app.include_router(router, prefix="/api")
-
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
     return {
         "status": "healthy",
         "app": settings.app_name,
@@ -55,7 +71,6 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
     return {
         "message": f"Welcome to {settings.app_name}",
         "docs": "/docs",
@@ -65,4 +80,5 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

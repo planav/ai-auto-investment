@@ -17,6 +17,7 @@ const Onboarding = lazy(() => import('./pages/Onboarding'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Unauthorized = lazy(() => import('./pages/Unauthorized'))
 const DepositWithdraw = lazy(() => import('./pages/DepositWithdraw'))
+const Invest = lazy(() => import('./pages/Invest'))
 
 function App() {
   return (
@@ -120,6 +121,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <DepositWithdraw />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/invest" 
+                  element={
+                    <ProtectedRoute>
+                      <Invest />
                     </ProtectedRoute>
                   } 
                 />

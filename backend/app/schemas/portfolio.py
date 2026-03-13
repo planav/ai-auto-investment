@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class PortfolioHoldingBase(BaseModel):
     symbol: str
     asset_type: str = Field(..., pattern="^(stock|crypto|etf|gold|cash)$")
+    sector: Optional[str] = None
     weight: float = Field(..., ge=0.0, le=1.0)
     quantity: float = Field(..., ge=0.0)
     avg_price: float = Field(..., ge=0.0)
@@ -24,7 +25,7 @@ class PortfolioHoldingResponse(PortfolioHoldingBase):
     predicted_return: Optional[float] = None
     confidence_score: Optional[float] = None
     signal_strength: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -38,6 +39,9 @@ class PortfolioBase(BaseModel):
 
 
 class PortfolioCreate(PortfolioBase):
+    risk_profile: str = Field(
+        default="moderate", pattern="^(conservative|moderate|aggressive)$"
+    )
     model_type: str = "temporal_fusion_transformer"
     investment_amount: float = Field(..., gt=0.0)
 
@@ -50,9 +54,12 @@ class PortfolioUpdate(BaseModel):
 
 from datetime import datetime
 
+
 class PortfolioResponse(PortfolioBase):
     id: int
     user_id: int
+    risk_profile: str
+    invested_amount: float
     model_type: str
     expected_return: Optional[float] = None
     volatility: Optional[float] = None
@@ -64,7 +71,7 @@ class PortfolioResponse(PortfolioBase):
     created_at: datetime
     updated_at: datetime
     holdings: List[PortfolioHoldingResponse] = []
-    
+
     class Config:
         from_attributes = True
 
@@ -92,7 +99,7 @@ class PortfolioPerformance(BaseModel):
     cvar_95: float
     beta: Optional[float] = None
     alpha: Optional[float] = None
-    
+
 
 # Rebalance Recommendation
 class RebalanceRecommendation(BaseModel):
@@ -104,13 +111,60 @@ class RebalanceRecommendation(BaseModel):
     estimated_cost: float = 0.0
 
 
+# Portfolio Transaction Schema
+class PortfolioTransactionResponse(BaseModel):
+    id: int
+    portfolio_id: int
+    transaction_type: str
+    symbol: Optional[str] = None
+    quantity: Optional[float] = None
+    price: Optional[float] = None
+    amount: float
+    description: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Investment Request Schema (for creating portfolio from wallet)
+class InvestmentRequest(BaseModel):
+    amount: float = Field(..., gt=0, description="Amount to invest from wallet")
+    risk_tolerance: str = Field(
+        ...,
+        pattern="^(conservative|moderate|aggressive)$",
+        description="Risk tolerance level",
+    )
+    name: Optional[str] = Field(
+        None, description="Portfolio name (auto-generated if not provided)"
+    )
+    description: Optional[str] = Field(None, description="Portfolio description")
+
+
+# Investment Response Schema
+class InvestmentResponse(BaseModel):
+    portfolio: PortfolioResponse
+    wallet_balance: float
+    message: str
+
+
 # System Stats Schema
 class SystemStats(BaseModel):
-    assets_analyzed: int = Field(default=0, description="Total number of assets in database")
-    avg_annual_return: Optional[float] = Field(default=None, description="Average annual return from backtests (%)")
-    prediction_accuracy: Optional[float] = Field(default=None, description="Prediction accuracy from backtests (%)")
-    analysis_time_ms: Optional[float] = Field(default=None, description="Average API analysis response time (ms)")
-    model_status: Dict[str, str] = Field(default_factory=dict, description="Training status for each model")
-    
+    assets_analyzed: int = Field(
+        default=0, description="Total number of assets in database"
+    )
+    avg_annual_return: Optional[float] = Field(
+        default=None, description="Average annual return from backtests (%)"
+    )
+    prediction_accuracy: Optional[float] = Field(
+        default=None, description="Prediction accuracy from backtests (%)"
+    )
+    analysis_time_ms: Optional[float] = Field(
+        default=None, description="Average API analysis response time (ms)"
+    )
+    model_status: Dict[str, str] = Field(
+        default_factory=dict, description="Training status for each model"
+    )
+
     class Config:
         from_attributes = True

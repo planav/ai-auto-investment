@@ -31,11 +31,26 @@ export default function Register() {
     setIsLoading(true)
 
     try {
-      const { confirmPassword, ...registerData } = formData
-      const response = await authApi.register(registerData)
-      const { access_token, refresh_token } = response.data
+      await authApi.register(formData)
       
-      login(response.data, access_token, refresh_token)
+      // After registration, automatically login to get tokens
+      const loginResponse = await authApi.login({
+        email: formData.email,
+        password: formData.password
+      })
+      
+      const { access_token, refresh_token } = loginResponse.data
+      
+      // Get user info after login
+      const axios = (await import('axios')).default
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+      const userResponse = await axios.get(`${API_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${access_token}` }
+      })
+      
+      // Store tokens and user data together
+      login(userResponse.data, access_token, refresh_token)
+      
       toast.success('Account created successfully!')
       navigate('/dashboard')
     } catch (error) {

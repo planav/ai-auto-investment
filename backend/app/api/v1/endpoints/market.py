@@ -5,7 +5,7 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_user_optional
 from app.models.user import User
 from app.services.market_data import market_data_service, StockQuote
 
@@ -113,9 +113,11 @@ async def get_batch_quotes(
 
 @router.get("/popular", response_model=List[QuoteResponse])
 async def get_popular_stocks(
-    current_user: User = Depends(get_current_user),
+@router.get("/popular", response_model=List[QuoteResponse])
+async def get_popular_stocks(
+    current_user: User = Depends(get_current_user_optional),
 ) -> Any:
-    """Get quotes for popular stocks."""
+    """Get quotes for popular stocks (public endpoint)."""
     quotes = await market_data_service.get_popular_stocks()
     
     return [
@@ -137,9 +139,11 @@ async def get_popular_stocks(
 
 @router.get("/overview", response_model=MarketOverviewResponse)
 async def get_market_overview(
-    current_user: User = Depends(get_current_user),
+@router.get("/overview", response_model=MarketOverviewResponse)
+async def get_market_overview(
+    current_user: User = Depends(get_current_user_optional),
 ) -> Any:
-    """Get market overview with major indices."""
+    """Get market overview with major indices (public endpoint)."""
     overview = await market_data_service.get_market_overview()
     return MarketOverviewResponse(**overview)
 
