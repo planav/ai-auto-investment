@@ -29,6 +29,17 @@ import { marketApi, portfolioApi, walletApi, dashboardApi } from '../services/ap
 import PortfolioChart from '../components/PortfolioChart'
 import AssetAllocation from '../components/AssetAllocation'
 import toast from 'react-hot-toast'
+import Heatmap from "./components/Heatmap";
+
+function Dashboard() {
+  return (
+    <div>
+      <h1>AI Auto Investment Dashboard</h1>
+      <Heatmap />
+    </div>
+  );
+}
+
 
 export default function Dashboard() {
   const { isAuthenticated, user } = useAuthStore()
