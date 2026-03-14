@@ -38,7 +38,9 @@ class LLMService:
     
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or settings.gemini_api_key
-        self.model = None
+        self.client = None
+        self._model_name = None
+        self._genai_types = None
         self._initialized = False
         
     def _initialize(self):
@@ -47,13 +49,15 @@ class LLMService:
             return
             
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            from google import genai
+            from google.genai import types as genai_types
+            self._genai_types = genai_types
+            self.client = genai.Client(api_key=self.api_key)
+            self._model_name = 'gemini-1.5-flash'
             self._initialized = True
             logger.info("Gemini LLM service initialized successfully")
         except ImportError:
-            logger.error("google-generativeai package not installed")
+            logger.error("google-genai package not installed")
             raise
         except Exception as e:
             logger.error(f"Error initializing Gemini: {e}")
@@ -119,12 +123,13 @@ Provide analysis in this exact JSON format:
 
 Be concise and actionable. Focus on practical investment advice."""
 
-            response = self.model.generate_content(
-                prompt,
-                generation_config={
-                    "temperature": 0.3,
-                    "max_output_tokens": 1024,
-                }
+            response = self.client.models.generate_content(
+                model=self._model_name,
+                contents=prompt,
+                config=self._genai_types.GenerateContentConfig(
+                    temperature=0.3,
+                    max_output_tokens=1024,
+                ),
             )
             
             # Parse JSON response
@@ -197,12 +202,13 @@ Provide analysis in this exact JSON format:
 
 Focus on recent price action and technical factors. Be concise."""
 
-            response = self.model.generate_content(
-                prompt,
-                generation_config={
-                    "temperature": 0.3,
-                    "max_output_tokens": 512,
-                }
+            response = self.client.models.generate_content(
+                model=self._model_name,
+                contents=prompt,
+                config=self._genai_types.GenerateContentConfig(
+                    temperature=0.3,
+                    max_output_tokens=512,
+                ),
             )
             
             # Parse JSON response
@@ -349,12 +355,13 @@ Provide a concise 3-4 sentence summary highlighting:
 
 Keep it brief and informative for investors."""
 
-            response = self.model.generate_content(
-                prompt,
-                generation_config={
-                    "temperature": 0.4,
-                    "max_output_tokens": 256,
-                }
+            response = self.client.models.generate_content(
+                model=self._model_name,
+                contents=prompt,
+                config=self._genai_types.GenerateContentConfig(
+                    temperature=0.4,
+                    max_output_tokens=256,
+                ),
             )
             
             return response.text.strip()
@@ -400,12 +407,13 @@ Audience: {user_level} investor
 Provide a 2-3 sentence explanation of why this prediction was made.
 Focus on the key factors."""
 
-            response = self.model.generate_content(
-                prompt,
-                generation_config={
-                    "temperature": 0.3,
-                    "max_output_tokens": 256,
-                }
+            response = self.client.models.generate_content(
+                model=self._model_name,
+                contents=prompt,
+                config=self._genai_types.GenerateContentConfig(
+                    temperature=0.3,
+                    max_output_tokens=256,
+                ),
             )
             
             return response.text.strip()
