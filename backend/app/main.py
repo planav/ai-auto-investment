@@ -47,15 +47,27 @@ app.include_router(stream.router, prefix="/api", tags=["Streaming"])
 # register model routers
 app.include_router(model.router, prefix="/api/model", tags=["Model"])
 
-# CORS middleware
+# CORS middleware — origins are read from the CORS_ORIGINS env variable so that
+# the same image works for both local development and production deployments.
+_cors_origins = settings.cors_origins_list
+
+# Always include the standard local-dev origins so developers don't need to
+# configure anything extra when running the backend locally.
+_default_local_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://localhost",
+    "http://localhost:80",
+]
+for _origin in _default_local_origins:
+    if _origin not in _cors_origins:
+        _cors_origins.append(_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],

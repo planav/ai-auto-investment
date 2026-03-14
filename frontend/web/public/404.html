@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AutoInvest</title>
+    <script>
+      // GitHub Pages SPA redirect script.
+      // When a user navigates directly to a deep link (e.g. /dashboard) GitHub Pages
+      // returns this 404.html.  This script converts the path+query into a ?p= query
+      // param and redirects to index.html, which the main app then parses back.
+      var l = window.location;
+      // Keep only the first two path segments (origin + repo name, e.g. /ai-auto-investment/)
+      // so the redirect always lands on the repo root index.html.
+      var repoSegments = 2; // origin segment ('/') + repo name segment
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, repoSegments).join('/') +
+        '/?p=' + encodeURIComponent(l.pathname.slice(1) + (l.search ? l.search : '')) +
+        (l.hash || '')
+      );
+    </script>
+  </head>
+  <body></body>
+</html>

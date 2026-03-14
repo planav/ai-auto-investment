@@ -9,3 +9,14 @@ dist/
 
 # OS
 .DS_Store
+
+# Environment variable files — never commit secrets
+.env
+.env.local
+.env.production
+.env.*.local
+backend/.env
+# Keep example files
+!.env.example
+
+
