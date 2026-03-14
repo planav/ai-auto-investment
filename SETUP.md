@@ -48,6 +48,23 @@ cd backend
 cp .env.example .env
 ```
 
+#### What is `SECRET_KEY`?
+
+`SECRET_KEY` is a random cryptographic string used to **sign and verify JWT authentication tokens**.
+Anyone who knows this value can forge login tokens, so it must be a long random secret that is **never shared or committed to version control**.
+
+**How to generate a secure `SECRET_KEY`:**
+
+```bash
+# Linux / macOS — using OpenSSL (recommended)
+openssl rand -hex 32
+
+# Python (any platform)
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Copy the output and paste it as the value of `SECRET_KEY` in your `.env` file.
+
 Edit the `.env` file with your database credentials:
 
 ```env
@@ -55,8 +72,8 @@ Edit the `.env` file with your database credentials:
 DATABASE_URL=postgresql+asyncpg://autoinvest_user:autoinvest_pass@localhost:5432/autoinvest_db
 DATABASE_URL_SYNC=postgresql://autoinvest_user:autoinvest_pass@localhost:5432/autoinvest_db
 
-# Security (generate a secure secret key)
-SECRET_KEY=your-super-secret-key-change-this-in-production
+# Security — replace with the output of: openssl rand -hex 32
+SECRET_KEY=replace-this-with-your-generated-key
 
 # External APIs (optional - for production features)
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
@@ -166,7 +183,7 @@ npm install
 
 For production deployment:
 
-1. Use a strong `SECRET_KEY`
+1. Generate a strong `SECRET_KEY` with `openssl rand -hex 32` and set it in your environment
 2. Set `DEBUG=false` and `ENVIRONMENT=production`
 3. Use a production PostgreSQL database
 4. Set up Redis for caching

@@ -261,7 +261,9 @@ pip install -r requirements.txt
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your configuration
+# Generate a SECRET_KEY and add it to .env:
+#   openssl rand -hex 32
+# Edit .env with your configuration (SECRET_KEY, database URL, API keys)
 
 # Initialize database
 alembic upgrade head
