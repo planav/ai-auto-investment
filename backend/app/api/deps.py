@@ -16,6 +16,12 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Get current authenticated user from JWT token."""
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
     payload = decode_token(token)
 

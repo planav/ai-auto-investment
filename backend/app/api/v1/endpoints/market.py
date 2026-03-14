@@ -161,52 +161,58 @@ async def get_ai_stock_analysis(
 ) -> Any:
     """Get AI analysis for a stock."""
     from app.services.llm_service import llm_service
-    
-    # Get quote data
+
+    # Get quote data (may be None if market data API is unavailable)
     quote = await market_data_service.get_quote(symbol)
-    if not quote:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Stock not found: {symbol}"
-        )
-    
-    # Get company profile
-    profile = await market_data_service.finnhub.get_company_profile(symbol)
-    
-    # Prepare data for AI analysis
-    quote_data = {
-        "price": quote.price,
-        "change": quote.change,
-        "change_percent": quote.change_percent,
-        "high": quote.high,
-        "low": quote.low,
-        "open": quote.open,
-        "previous_close": quote.previous_close
-    }
-    
-    company_info = None
-    if profile:
-        company_info = {
-            "name": profile.name,
-            "industry": profile.industry,
-            "sector": profile.sector,
-            "market_cap": profile.market_cap
+
+    # Prepare quote data dict - use zeros if quote unavailable (rule-based fallback handles this)
+    if quote:
+        quote_data = {
+            "price": quote.price,
+            "change": quote.change,
+            "change_percent": quote.change_percent,
+            "high": quote.high,
+            "low": quote.low,
+            "open": quote.open,
+            "previous_close": quote.previous_close,
         }
-    
-    # Get AI analysis
+    else:
+        quote_data = {
+            "price": 0.0,
+            "change": 0.0,
+            "change_percent": 0.0,
+            "high": 0.0,
+            "low": 0.0,
+            "open": 0.0,
+            "previous_close": 0.0,
+        }
+
+    # Get company profile (optional, only when quote is available)
+    company_info = None
+    if quote:
+        profile = await market_data_service.finnhub.get_company_profile(symbol)
+        if profile:
+            company_info = {
+                "name": profile.name,
+                "industry": profile.industry,
+                "sector": profile.sector,
+                "market_cap": profile.market_cap,
+            }
+
+    # Get AI analysis (always returns a result via rule-based fallback when LLM is unavailable)
     analysis = await llm_service.analyze_stock(symbol, quote_data, company_info)
-    
+
     if not analysis:
         raise HTTPException(
             status_code=500,
             detail="Failed to generate AI analysis"
         )
-    
+
     return AIStockAnalysisResponse(
         symbol=analysis.symbol,
         signal=analysis.signal,
         confidence=analysis.confidence,
         rationale=analysis.rationale,
         key_factors=analysis.key_factors,
-        risk_level=analysis.risk_level
+        risk_level=analysis.risk_level,
     )

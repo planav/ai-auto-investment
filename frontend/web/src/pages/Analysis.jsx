@@ -106,17 +106,24 @@ export default function Analysis() {
     if (!searchQuery.trim()) return
     
     setIsSearching(true)
+    const upperQuery = searchQuery.trim().toUpperCase()
     try {
       const response = await marketApi.searchStocks(searchQuery)
-      setSearchResults(response.data || [])
+      const results = response.data || []
+      setSearchResults(results)
       
-      if (response.data?.length > 0) {
+      if (results.length > 0) {
         // Auto-select first result and get AI analysis
-        const symbol = response.data[0].symbol
-        await fetchAIAnalysis(symbol)
+        await fetchAIAnalysis(results[0].symbol)
+      } else {
+        // No search results - try AI analysis directly with the typed symbol
+        toast(`Showing AI analysis for ${upperQuery}`, { icon: 'ℹ️' })
+        await fetchAIAnalysis(upperQuery)
       }
     } catch (error) {
-      toast.error('Search failed')
+      // Search API unavailable - try AI analysis directly with typed symbol
+      toast(`Showing AI analysis for ${upperQuery}`, { icon: 'ℹ️' })
+      await fetchAIAnalysis(upperQuery)
     } finally {
       setIsSearching(false)
     }
