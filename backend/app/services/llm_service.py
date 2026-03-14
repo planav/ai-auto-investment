@@ -49,7 +49,7 @@ class LLMService:
         try:
             import google.generativeai as genai
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
             self._initialized = True
             logger.info("Gemini LLM service initialized successfully")
         except ImportError:
@@ -172,7 +172,7 @@ Be concise and actionable. Focus on practical investment advice."""
             company_info: Optional company information
             
         Returns:
-            StockAnalysis object or None if error
+            StockAnalysis object (never None — falls back to rule-based analysis)
         """
         try:
             self._initialize()
@@ -226,11 +226,95 @@ Focus on recent price action and technical factors. Be concise."""
                 )
             except json.JSONDecodeError as e:
                 logger.error(f"Error parsing LLM response: {e}")
-                return None
+                return self._rule_based_analysis(symbol, quote_data)
                 
         except Exception as e:
             logger.error(f"Error in stock analysis: {e}")
-            return None
+            return self._rule_based_analysis(symbol, quote_data)
+
+    def _rule_based_analysis(
+        self,
+        symbol: str,
+        quote_data: Dict[str, Any],
+    ) -> StockAnalysis:
+        """
+        Rule-based fallback analysis when LLM is unavailable.
+        Uses price momentum as a simple signal.
+        """
+        change_pct = quote_data.get("change_percent", 0)
+        price = quote_data.get("price", 0)
+        high = quote_data.get("high", price)
+        low = quote_data.get("low", price)
+
+        if change_pct > 2.5:
+            signal, confidence = "buy", 72
+            risk = "medium"
+            rationale = (
+                f"{symbol} is showing strong upward momentum with a {change_pct:+.2f}% gain today. "
+                f"Price action suggests continued buying interest."
+            )
+            factors = [
+                f"Strong daily gain of {change_pct:+.2f}%",
+                "Positive price momentum",
+                "Above-average trading activity",
+            ]
+        elif change_pct > 0.5:
+            signal, confidence = "buy", 63
+            risk = "low"
+            rationale = (
+                f"{symbol} shows modest positive momentum with a {change_pct:+.2f}% gain. "
+                f"Stable upward price action."
+            )
+            factors = [
+                f"Positive daily change of {change_pct:+.2f}%",
+                "Stable price action",
+                "Low volatility signal",
+            ]
+        elif change_pct > -0.5:
+            signal, confidence = "hold", 60
+            risk = "low"
+            rationale = (
+                f"{symbol} is trading near flat with a {change_pct:+.2f}% change. "
+                f"No strong directional signal at this time."
+            )
+            factors = [
+                "Neutral daily price movement",
+                "Consolidation pattern",
+                "Await clearer directional signal",
+            ]
+        elif change_pct > -2.5:
+            signal, confidence = "sell", 63
+            risk = "medium"
+            rationale = (
+                f"{symbol} is declining with a {change_pct:+.2f}% loss today. "
+                f"Negative price action warrants caution."
+            )
+            factors = [
+                f"Negative daily change of {change_pct:+.2f}%",
+                "Downward price pressure",
+                "Risk management consideration",
+            ]
+        else:
+            signal, confidence = "sell", 72
+            risk = "high"
+            rationale = (
+                f"{symbol} is experiencing significant selling pressure with a {change_pct:+.2f}% loss. "
+                f"Strong bearish momentum detected."
+            )
+            factors = [
+                f"Sharp decline of {change_pct:+.2f}%",
+                "Strong selling pressure",
+                "High-risk environment",
+            ]
+
+        return StockAnalysis(
+            symbol=symbol,
+            signal=signal,
+            confidence=confidence,
+            rationale=rationale,
+            key_factors=factors,
+            risk_level=risk,
+        )
     
     async def generate_market_summary(
         self,

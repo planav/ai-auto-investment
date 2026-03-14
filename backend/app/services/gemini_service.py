@@ -13,17 +13,23 @@ genai.configure(api_key=settings.gemini_api_key)
 _gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 
 def query_gemini(user_query: str):
-    # Check cache
-    cached = cache.get(user_query)
-    if cached:
-        return {"result": cached, "cached": True}
+    # Check cache (graceful fallback if Redis is unavailable)
+    try:
+        cached = cache.get(user_query)
+        if cached:
+            return {"result": cached, "cached": True}
+    except Exception:
+        pass
 
     # Use Gemini SDK for querying
     response = _gemini_model.generate_content(user_query)
     result = response.text if hasattr(response, "text") else str(response)
 
-    # Store in cache (1 hour expiry)
-    cache.set(user_query, result, ex=3600)
+    # Store in cache (1 hour expiry) — ignore failures
+    try:
+        cache.set(user_query, result, ex=3600)
+    except Exception:
+        pass
 
     return {
         "result": result,
