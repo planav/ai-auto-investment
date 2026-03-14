@@ -11,6 +11,17 @@
 
 ---
 
+## 🌐 Live Demo
+
+| Service | URL |
+|---------|-----|
+| **Frontend (GitHub Pages)** | **https://planav.github.io/ai-auto-investment/** |
+| Backend API | Deploy to Render.com — see [Hosting Guide](#-hosting--deployment) |
+
+> The frontend is automatically re-deployed to GitHub Pages every time a commit is pushed to the `main` branch. No manual steps needed.
+
+---
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![React 18](https://img.shields.io/badge/react-18-blue.svg)](https://reactjs.org/)
@@ -28,6 +39,7 @@
 - [Technology Stack](#technology-stack)
 - [Project Status](#project-status)
 - [Getting Started](#getting-started)
+- [Hosting & Deployment](#-hosting--deployment)
 - [Documentation](#documentation)
 - [Academic Context](#academic-context)
 - [Screenshots](#screenshots)
@@ -287,6 +299,58 @@ npm run dev
 For detailed setup instructions, see [`SETUP.md`](SETUP.md).
 
 ---
+
+## 🚀 Hosting & Deployment
+
+### Frontend — GitHub Pages (automatic)
+
+The frontend is deployed automatically to **https://planav.github.io/ai-auto-investment/** via the `gh-pages.yml` GitHub Actions workflow.  
+Every push to `main` triggers a new build and deploy — nothing manual required.
+
+To enable it for a fork:
+1. Go to **Settings → Pages** in your GitHub repository.
+2. Set **Source** to **GitHub Actions**.
+3. Push a commit to `main` — the workflow will deploy it automatically.
+
+### Backend — Render.com (one-click)
+
+The `render.yaml` Blueprint in this repository lets you deploy the full backend stack (FastAPI + PostgreSQL + Redis) to [Render.com](https://render.com) with a single click.
+
+#### Steps
+
+1. [Sign up at render.com](https://render.com) (free tier available) and connect your GitHub account.
+2. Click **New → Blueprint** and select this repository.
+3. Set the required secrets in the Render dashboard:
+
+   | Secret | Where to get it |
+   |--------|----------------|
+   | `SECRET_KEY` | Run: `openssl rand -hex 32` |
+   | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/) |
+   | `FINNHUB_API_KEY` | [finnhub.io](https://finnhub.io/) |
+   | `ALPHA_VANTAGE_API_KEY` | [alphavantage.co](https://www.alphavantage.co/) |
+   | `NEWS_API_KEY` | [newsapi.org](https://newsapi.org/) |
+
+4. Click **Apply** — Render creates the PostgreSQL database, Redis instance, and backend service.
+5. Copy the generated backend URL (e.g. `https://autoinvest-backend.onrender.com`).
+6. Add it as a GitHub repository variable named `VITE_API_URL` with the value `https://autoinvest-backend.onrender.com/api/v1`.  
+   The next push to `main` will bake that URL into the GitHub Pages frontend.
+
+> After setup, every push to `main` automatically re-deploys **both** the frontend (GitHub Pages) and the backend (Render.com).
+
+### Full-Stack Local Deployment (Docker)
+
+```bash
+# 1. Copy and fill in the environment variables
+cp .env.example .env
+# Edit .env — set SECRET_KEY and any API keys you have
+
+# 2. Start everything
+docker compose up --build
+
+# Frontend → http://localhost
+# Backend  → http://localhost:8000
+# API docs → http://localhost:8000/docs
+```
 
 ## 📚 Documentation
 

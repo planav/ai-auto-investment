@@ -1,0 +1,64 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend/web
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend/web
+        run: npm run build
+        env:
+          # GitHub Pages serves the site under /ai-auto-investment/
+          VITE_BASE_URL: /ai-auto-investment/
+          # Backend URL — set this to your Render/Railway backend URL once deployed.
+          # The app will display a "backend not connected" banner when this is missing.
+          VITE_API_URL: ${{ vars.VITE_API_URL || '' }}
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/web/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

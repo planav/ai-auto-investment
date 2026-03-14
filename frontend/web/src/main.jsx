@@ -15,10 +15,14 @@ const queryClient = new QueryClient({
   },
 })
 
+// When deployed to GitHub Pages the app lives under /ai-auto-investment/.
+// import.meta.env.BASE_URL is set by Vite to the value of `base` in vite.config.js.
+const basename = import.meta.env.BASE_URL
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <App />
         <Toaster
           position="top-right"

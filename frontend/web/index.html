@@ -4,7 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web</title>
+    <title>AutoInvest — AI-Powered Investment Platform</title>
+    <script>
+      // GitHub Pages SPA redirect: restore the original path from the ?p= query param
+      // that was set by 404.html when a deep link was requested directly.
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var p = params.get('p');
+        if (p) {
+          var decoded = decodeURIComponent(p);
+          // Find the first '/' so we use only the path portion (strip any leading segment)
+          var slashIndex = decoded.indexOf('/');
+          var rest = slashIndex !== -1 ? decoded.slice(slashIndex) : '/' + decoded;
+          window.history.replaceState(null, null, rest || '/');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -11,8 +11,7 @@ echo "AutoInvest Backend starting..."
 if [ -n "$DATABASE_URL" ]; then
   # Strip any existing driver prefix then re-apply the correct ones
   DB_CLEAN=$(echo "$DATABASE_URL" \
-    | sed 's|^postgres://|postgresql://|' \
-    | sed 's|^postgresql+asyncpg://|postgresql://|')
+    | sed -e 's|^postgres://|postgresql://|' -e 's|^postgresql+asyncpg://|postgresql://|')
   export DATABASE_URL="postgresql+asyncpg://${DB_CLEAN#postgresql://}"
   export DATABASE_URL_SYNC="${DB_CLEAN}"
 fi
