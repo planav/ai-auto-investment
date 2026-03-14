@@ -4,6 +4,7 @@ from app.tasks import train_model_task
 
 router = APIRouter()
 
+
 @router.post("/train-model")
 async def train_model():
     task = train_model_task.delay()

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from datetime import datetime, timedelta
 import random
 import numpy as np
@@ -19,13 +19,13 @@ class QuantEngine:
     Quantitative Engine that generates trading signals using deep learning models.
     Supports Temporal Fusion Transformers, LSTMs, Graph Neural Networks, etc.
     """
-    
+
     def __init__(self):
         self.factor_engine = FactorEngine()
         self.model_configs: Dict[ModelType, ModelConfig] = {}
         self.prediction_cache: Dict[str, PredictionResult] = {}
         self._initialize_model_configs()
-    
+
     def _initialize_model_configs(self) -> None:
         """Initialize configurations for all supported models."""
         self.model_configs[ModelType.TEMPORAL_FUSION_TRANSFORMER] = ModelConfig(
@@ -38,7 +38,7 @@ class QuantEngine:
             dropout=0.1,
             learning_rate=0.001,
         )
-        
+
         self.model_configs[ModelType.LSTM_ATTENTION] = ModelConfig(
             model_type=ModelType.LSTM_ATTENTION,
             input_sequence_length=60,
@@ -48,7 +48,7 @@ class QuantEngine:
             num_heads=4,
             dropout=0.2,
         )
-        
+
         self.model_configs[ModelType.PATCH_TST] = ModelConfig(
             model_type=ModelType.PATCH_TST,
             input_sequence_length=96,
@@ -57,7 +57,7 @@ class QuantEngine:
             num_layers=3,
             num_heads=8,
         )
-        
+
         self.model_configs[ModelType.NBEATS] = ModelConfig(
             model_type=ModelType.NBEATS,
             input_sequence_length=60,
@@ -65,7 +65,7 @@ class QuantEngine:
             hidden_size=512,
             num_layers=4,
         )
-        
+
         self.model_configs[ModelType.GRAPH_ATTENTION] = ModelConfig(
             model_type=ModelType.GRAPH_ATTENTION,
             input_sequence_length=30,
@@ -74,7 +74,7 @@ class QuantEngine:
             num_layers=2,
             num_heads=4,
         )
-    
+
     async def generate_signals(
         self,
         assets: List[str],
@@ -83,19 +83,19 @@ class QuantEngine:
     ) -> SignalResult:
         """
         Generate trading signals using deep learning models.
-        
+
         Args:
             assets: List of asset symbols to analyze
             model_type: Type of DL model to use
             lookback_days: Historical data window
-            
+
         Returns:
             SignalResult with predictions and rankings
         """
         config = self.model_configs.get(model_type, self.model_configs[ModelType.TEMPORAL_FUSION_TRANSFORMER])
-        
+
         predictions = {}
-        
+
         # Generate predictions for each asset
         for symbol in assets:
             prediction = await self._predict_single_asset(
@@ -104,14 +104,14 @@ class QuantEngine:
             )
             predictions[symbol] = prediction
             self.prediction_cache[symbol] = prediction
-        
+
         # Rank assets by predicted return
         rankings = sorted(
             predictions.keys(),
             key=lambda x: predictions[x].predicted_return,
             reverse=True
         )
-        
+
         # Determine market regime
         avg_return = np.mean([p.predicted_return for p in predictions.values()])
         if avg_return > 0.02:
@@ -120,10 +120,10 @@ class QuantEngine:
             regime = "bear"
         else:
             regime = "sideways"
-        
+
         # Calculate overall confidence
         avg_confidence = np.mean([p.confidence for p in predictions.values()])
-        
+
         return SignalResult(
             predictions=predictions,
             rankings=rankings,
@@ -140,7 +140,7 @@ class QuantEngine:
                 "timestamp": datetime.now().isoformat(),
             }
         )
-    
+
     async def _predict_single_asset(
         self,
         symbol: str,
@@ -148,19 +148,18 @@ class QuantEngine:
     ) -> PredictionResult:
         """
         Generate prediction for a single asset using technical analysis.
-        
+
         Uses real historical price data from yfinance to compute:
         - RSI (14-day)
         - Price momentum (1-month and 3-month returns)
         - Moving average crossover (20/50-day SMA)
         - Volatility (20-day)
-        
+
         These factors are combined to produce a predicted return and
         confidence score, replacing random mock data.
         """
         try:
             import yfinance as yf
-            import pandas as pd
 
             ticker = yf.Ticker(symbol)
             hist = ticker.history(period="90d")
@@ -232,7 +231,7 @@ class QuantEngine:
                 prediction_horizon=config.prediction_horizon,
             )
 
-        except Exception as e:
+        except Exception:
             # Fall back to a cautious neutral prediction rather than random noise
             return PredictionResult(
                 symbol=symbol,
@@ -250,7 +249,7 @@ class QuantEngine:
                 attention_weights=None,
                 prediction_horizon=config.prediction_horizon,
             )
-    
+
     async def backtest_strategy(
         self,
         symbols: List[str],
@@ -262,7 +261,7 @@ class QuantEngine:
     ) -> BacktestResult:
         """
         Run backtest simulation with DL-powered signals.
-        
+
         Args:
             symbols: List of asset symbols
             start_date: Backtest start date
@@ -270,47 +269,47 @@ class QuantEngine:
             model_type: Model type to use
             initial_capital: Starting capital
             rebalance_frequency: How often to rebalance
-            
+
         Returns:
             BacktestResult with performance metrics
         """
         # Calculate number of periods
         days = (end_date - start_date).days
-        
+
         # Generate realistic backtest results
         # In production, this would simulate actual trading
-        
+
         annual_return = random.uniform(0.08, 0.20)
         total_return = annual_return * (days / 365)
         total_return_pct = total_return * 100
-        
+
         volatility = random.uniform(0.12, 0.25)
         sharpe_ratio = annual_return / volatility if volatility > 0 else 0
-        
+
         max_drawdown = random.uniform(0.10, 0.25)
         win_rate = random.uniform(0.55, 0.70)
-        
+
         # Generate equity curve
         equity_curve = []
         current_value = initial_capital
-        
+
         for i in range(0, days, 30):  # Monthly points
             date = start_date + timedelta(days=i)
             # Random walk with upward drift
             monthly_return = random.gauss(annual_return / 12, volatility / np.sqrt(12))
             current_value *= (1 + monthly_return)
-            
+
             equity_curve.append({
                 "date": date.strftime("%Y-%m-%d"),
                 "value": round(current_value, 2),
             })
-        
+
         # Generate monthly returns
         monthly_returns = [
             {"month": f"2023-{i:02d}", "return": round(random.gauss(0.01, 0.05), 4)}
             for i in range(1, 13)
         ]
-        
+
         return BacktestResult(
             total_return=current_value - initial_capital,
             total_return_pct=total_return_pct,
@@ -329,14 +328,14 @@ class QuantEngine:
             drawdown_series=[],  # Would calculate in production
             trade_history=[],  # Would track in production
         )
-    
+
     async def get_factor_exposure(self, portfolio_id: int) -> FactorExposure:
         """
         Get factor exposure analysis for a portfolio.
-        
+
         Args:
             portfolio_id: Portfolio ID
-            
+
         Returns:
             FactorExposure with factor loadings
         """
@@ -352,7 +351,7 @@ class QuantEngine:
             dividend_factor=random.uniform(-0.2, 0.4),
             growth_factor=random.uniform(-0.1, 0.5),
         )
-    
+
     def get_available_models(self) -> List[Dict[str, Any]]:
         """Get list of available models with descriptions."""
         return [

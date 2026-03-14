@@ -71,7 +71,7 @@ async def create_portfolio(
     await wallet_service.deduct_for_investment(
         user_id=current_user.id,
         amount=portfolio_in.investment_amount,
-        reference_id=f"portfolio_creation",
+        reference_id="portfolio_creation",
     )
 
     # Create portfolio
@@ -92,9 +92,6 @@ async def create_portfolio(
 
     # Generate AI portfolio based on user preferences
     try:
-        # Define asset universe based on user preferences
-        preferred_assets = current_user.preferred_assets or "stocks,etfs"
-
         # Popular stocks for the portfolio
         asset_universe = [
             "AAPL",

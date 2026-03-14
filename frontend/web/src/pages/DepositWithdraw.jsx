@@ -10,12 +10,10 @@ import {
   Loader2,
   TrendingUp
 } from 'lucide-react'
-import { useAuthStore } from '../store/authStore'
-import { walletApi, dashboardApi } from '../services/api'
+import { walletApi } from '../services/api'
 import toast from 'react-hot-toast'
 
 export default function DepositWithdraw() {
-  const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState('deposit')
   const [amount, setAmount] = useState('')
   const [walletBalance, setWalletBalance] = useState({
@@ -28,7 +26,7 @@ export default function DepositWithdraw() {
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
   const [transactions, setTransactions] = useState([])
-  const [pagination, setPagination] = useState({ page: 1, page_size: 20, total: 0 })
+  const [, setPagination] = useState({ page: 1, page_size: 20, total: 0 })
 
   useEffect(() => {
     fetchWalletData()

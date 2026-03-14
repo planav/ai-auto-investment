@@ -43,18 +43,17 @@ const RISK_PROFILES = {
 }
 
 export default function Invest() {
-  const { isAuthenticated, user } = useAuthStore()
+  const { isAuthenticated } = useAuthStore()
   const navigate = useNavigate()
   
   const [step, setStep] = useState(1)
-  const [isLoading, setIsLoading] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   
   // Form state
   const [walletBalance, setWalletBalance] = useState(0)
   const [amount, setAmount] = useState(10000)
   const [riskProfile, setRiskProfile] = useState('moderate')
-  const [portfolioName, setPortfolioName] = useState('')
+  const [portfolioName] = useState('')
   
   useEffect(() => {
     if (!isAuthenticated) {

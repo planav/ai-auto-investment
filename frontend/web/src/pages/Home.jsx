@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { 
   Brain, 
   TrendingUp, 
@@ -21,16 +20,14 @@ import {
   Users,
   Lock
 } from 'lucide-react'
-import { marketApi, systemApi } from '../services/api'
+import { marketApi } from '../services/api'
 import { useAuthStore } from '../store/authStore'
 
 export default function Home() {
-  const navigate = useNavigate()
-  const { isAuthenticated, user, logout } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
   const [marketData, setMarketData] = useState(null)
   const [popularStocks, setPopularStocks] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
     fetchMarketData()
@@ -50,7 +47,6 @@ export default function Home() {
       
     } catch (err) {
       console.error('Failed to fetch market data:', err)
-      setError('Unable to load market data')
     } finally {
       setLoading(false)
     }
@@ -101,13 +97,6 @@ export default function Home() {
       case 'closed': return 'text-danger'
       default: return 'text-warning'
     }
-  }
-
-  const formatNumber = (num) => {
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K'
-    }
-    return num?.toString() || '0'
   }
 
   return (

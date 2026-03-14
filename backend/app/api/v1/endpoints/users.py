@@ -1,7 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -30,18 +29,18 @@ async def update_current_user(
     """Update current user profile."""
     # Update fields
     update_data = user_update.model_dump(exclude_unset=True)
-    
+
     # Handle password separately
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
-    
+
     # Update user attributes
     for field, value in update_data.items():
         setattr(current_user, field, value)
-    
+
     await db.commit()
     await db.refresh(current_user)
-    
+
     return current_user
 
 
@@ -73,14 +72,14 @@ async def update_user_preferences(
         "monthly_contribution",
         "preferred_assets",
     ]
-    
+
     for field, value in preferences.items():
         if field in allowed_fields:
             setattr(current_user, field, value)
-    
+
     await db.commit()
     await db.refresh(current_user)
-    
+
     return {
         "risk_tolerance": current_user.risk_tolerance,
         "investment_horizon": current_user.investment_horizon,

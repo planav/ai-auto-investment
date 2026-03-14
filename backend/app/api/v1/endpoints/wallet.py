@@ -40,20 +40,20 @@ async def deposit(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Deposit amount must be positive",
         )
-    
+
     if deposit_request.amount > 1000000:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Maximum deposit amount is $1,000,000",
         )
-    
+
     wallet_service = WalletService(db)
     wallet = await wallet_service.deposit(
         user_id=current_user.id,
         amount=deposit_request.amount,
         description=deposit_request.description,
     )
-    
+
     return wallet
 
 
@@ -69,20 +69,20 @@ async def withdraw(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Withdrawal amount must be positive",
         )
-    
+
     wallet_service = WalletService(db)
     wallet = await wallet_service.withdraw(
         user_id=current_user.id,
         amount=withdraw_request.amount,
         description=withdraw_request.description,
     )
-    
+
     if wallet is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Insufficient balance",
         )
-    
+
     return wallet
 
 

@@ -35,19 +35,19 @@ class StockAnalysis:
 
 class LLMService:
     """Google Gemini 2.0 Flash integration for AI analysis."""
-    
+
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or settings.gemini_api_key
         self.client = None
         self._model_name = None
         self._genai_types = None
         self._initialized = False
-        
+
     def _initialize(self):
         """Initialize Gemini model."""
         if self._initialized:
             return
-            
+
         try:
             from google import genai
             from google.genai import types as genai_types
@@ -62,7 +62,7 @@ class LLMService:
         except Exception as e:
             logger.error(f"Error initializing Gemini: {e}")
             raise
-    
+
     async def analyze_portfolio(
         self,
         holdings: List[Dict[str, Any]],
@@ -71,18 +71,18 @@ class LLMService:
     ) -> Optional[PortfolioAnalysis]:
         """
         Generate AI portfolio analysis.
-        
+
         Args:
             holdings: List of portfolio holdings with symbol, weight, etc.
             market_context: Current market conditions
             risk_tolerance: User's risk tolerance level
-            
+
         Returns:
             PortfolioAnalysis object or None if error
         """
         try:
             self._initialize()
-            
+
             prompt = f"""Analyze this investment portfolio and provide structured recommendations.
 
 Portfolio Holdings:
@@ -131,7 +131,7 @@ Be concise and actionable. Focus on practical investment advice."""
                     max_output_tokens=1024,
                 ),
             )
-            
+
             # Parse JSON response
             try:
                 # Try to extract JSON from response
@@ -144,7 +144,7 @@ Be concise and actionable. Focus on practical investment advice."""
                     data = json.loads(json_str)
                 else:
                     data = json.loads(text)
-                
+
                 return PortfolioAnalysis(
                     risk_assessment=data.get("risk_assessment", {}),
                     diversification_score=data.get("diversification_score", 50),
@@ -157,11 +157,11 @@ Be concise and actionable. Focus on practical investment advice."""
                 logger.error(f"Error parsing LLM response: {e}")
                 logger.debug(f"Response text: {response.text}")
                 return None
-                
+
         except Exception as e:
             logger.error(f"Error in portfolio analysis: {e}")
             return None
-    
+
     async def analyze_stock(
         self,
         symbol: str,
@@ -170,18 +170,18 @@ Be concise and actionable. Focus on practical investment advice."""
     ) -> Optional[StockAnalysis]:
         """
         Generate AI stock analysis.
-        
+
         Args:
             symbol: Stock symbol
             quote_data: Current quote data
             company_info: Optional company information
-            
+
         Returns:
             StockAnalysis object (never None — falls back to rule-based analysis)
         """
         try:
             self._initialize()
-            
+
             prompt = f"""Analyze this stock and provide investment recommendation.
 
 Stock: {symbol}
@@ -210,7 +210,7 @@ Focus on recent price action and technical factors. Be concise."""
                     max_output_tokens=512,
                 ),
             )
-            
+
             # Parse JSON response
             try:
                 text = response.text
@@ -221,7 +221,7 @@ Focus on recent price action and technical factors. Be concise."""
                     data = json.loads(json_str)
                 else:
                     data = json.loads(text)
-                
+
                 return StockAnalysis(
                     symbol=symbol,
                     signal=data.get("signal", "hold"),
@@ -233,7 +233,7 @@ Focus on recent price action and technical factors. Be concise."""
             except json.JSONDecodeError as e:
                 logger.error(f"Error parsing LLM response: {e}")
                 return self._rule_based_analysis(symbol, quote_data)
-                
+
         except Exception as e:
             logger.error(f"Error in stock analysis: {e}")
             return self._rule_based_analysis(symbol, quote_data)
@@ -248,9 +248,6 @@ Focus on recent price action and technical factors. Be concise."""
         Uses price momentum as a simple signal.
         """
         change_pct = quote_data.get("change_percent", 0)
-        price = quote_data.get("price", 0)
-        high = quote_data.get("high", price)
-        low = quote_data.get("low", price)
 
         if change_pct > 2.5:
             signal, confidence = "buy", 72
@@ -321,7 +318,7 @@ Focus on recent price action and technical factors. Be concise."""
             key_factors=factors,
             risk_level=risk,
         )
-    
+
     async def generate_market_summary(
         self,
         indices_data: Dict[str, Any],
@@ -329,17 +326,17 @@ Focus on recent price action and technical factors. Be concise."""
     ) -> Optional[str]:
         """
         Generate market summary.
-        
+
         Args:
             indices_data: Major indices performance
             top_movers: Top gaining/losing stocks
-            
+
         Returns:
             Summary text or None if error
         """
         try:
             self._initialize()
-            
+
             prompt = f"""Generate a brief market summary based on the following data.
 
 Major Indices:
@@ -363,13 +360,13 @@ Keep it brief and informative for investors."""
                     max_output_tokens=256,
                 ),
             )
-            
+
             return response.text.strip()
-            
+
         except Exception as e:
             logger.error(f"Error generating market summary: {e}")
             return None
-    
+
     async def explain_prediction(
         self,
         symbol: str,
@@ -378,24 +375,24 @@ Keep it brief and informative for investors."""
     ) -> Optional[str]:
         """
         Explain a prediction in user-friendly terms.
-        
+
         Args:
             symbol: Stock symbol
             prediction_data: Prediction details
             user_level: User experience level (beginner/intermediate/advanced)
-            
+
         Returns:
             Explanation text or None if error
         """
         try:
             self._initialize()
-            
+
             level_guidance = {
                 "beginner": "Use simple language. Avoid jargon. Explain any financial terms.",
                 "intermediate": "Some financial knowledge assumed. Brief explanations.",
                 "advanced": "Professional terminology acceptable."
             }
-            
+
             prompt = f"""Explain this stock prediction for {symbol}:
 
 Prediction Data:
@@ -415,9 +412,9 @@ Focus on the key factors."""
                     max_output_tokens=256,
                 ),
             )
-            
+
             return response.text.strip()
-            
+
         except Exception as e:
             logger.error(f"Error explaining prediction: {e}")
             return None

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.api.deps import get_current_user, get_current_user_optional
 from app.models.user import User
-from app.services.market_data import market_data_service, StockQuote
+from app.services.market_data import market_data_service
 
 router = APIRouter()
 
@@ -57,13 +57,13 @@ async def get_quote(
 ) -> Any:
     """Get real-time quote for a stock symbol."""
     quote = await market_data_service.get_quote(symbol)
-    
+
     if not quote:
         raise HTTPException(
             status_code=404,
             detail=f"Quote not found for symbol: {symbol}"
         )
-    
+
     return QuoteResponse(
         symbol=quote.symbol,
         price=quote.price,
@@ -85,15 +85,15 @@ async def get_batch_quotes(
 ) -> Any:
     """Get real-time quotes for multiple symbols."""
     symbol_list = [s.strip().upper() for s in symbols.split(",")]
-    
+
     if len(symbol_list) > 50:
         raise HTTPException(
             status_code=400,
             detail="Maximum 50 symbols allowed per request"
         )
-    
+
     quotes = await market_data_service.get_batch_quotes(symbol_list)
-    
+
     return [
         QuoteResponse(
             symbol=q.symbol,
@@ -117,7 +117,7 @@ async def get_popular_stocks(
 ) -> Any:
     """Get quotes for popular stocks (public endpoint)."""
     quotes = await market_data_service.get_popular_stocks()
-    
+
     return [
         QuoteResponse(
             symbol=q.symbol,

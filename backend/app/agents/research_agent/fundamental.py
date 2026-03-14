@@ -13,7 +13,7 @@ class FundamentalMetrics:
     revenue_growth: Optional[float] = None
     profit_margin: Optional[float] = None
     free_cash_flow: Optional[float] = None
-    
+
     # Scores
     value_score: float = 0.0  # 0-100
     quality_score: float = 0.0  # 0-100
@@ -23,10 +23,10 @@ class FundamentalMetrics:
 
 class FundamentalAnalyzer:
     """Analyzes fundamental metrics of assets using real market data."""
-    
+
     def __init__(self):
         self.metrics_cache: Dict[str, FundamentalMetrics] = {}
-    
+
     async def analyze_asset(self, symbol: str) -> FundamentalMetrics:
         """Analyze fundamental metrics for a single asset using yfinance."""
         import asyncio
@@ -63,7 +63,7 @@ class FundamentalAnalyzer:
             profit_margin=float(profit_margin) if profit_margin is not None else None,
             free_cash_flow=float(free_cash_flow) if free_cash_flow is not None else None,
         )
-        
+
         # Calculate scores
         metrics.value_score = self._calculate_value_score(metrics)
         metrics.quality_score = self._calculate_quality_score(metrics)
@@ -73,21 +73,21 @@ class FundamentalAnalyzer:
             metrics.quality_score * 0.4 +
             metrics.growth_score * 0.3
         )
-        
+
         self.metrics_cache[symbol] = metrics
         return metrics
-    
+
     async def analyze_assets(self, symbols: List[str]) -> Dict[str, FundamentalMetrics]:
         """Analyze fundamental metrics for multiple assets."""
         results = {}
         for symbol in symbols:
             results[symbol] = await self.analyze_asset(symbol)
         return results
-    
+
     def _calculate_value_score(self, metrics: FundamentalMetrics) -> float:
         """Calculate value score based on valuation metrics."""
         score = 50.0  # Base score
-        
+
         if metrics.pe_ratio:
             if metrics.pe_ratio < 15:
                 score += 25
@@ -95,7 +95,7 @@ class FundamentalAnalyzer:
                 score += 10
             else:
                 score -= 10
-        
+
         if metrics.pb_ratio:
             if metrics.pb_ratio < 2:
                 score += 15
@@ -103,13 +103,13 @@ class FundamentalAnalyzer:
                 score += 5
             else:
                 score -= 5
-        
+
         return max(0, min(100, score))
-    
+
     def _calculate_quality_score(self, metrics: FundamentalMetrics) -> float:
         """Calculate quality score based on profitability and stability."""
         score = 50.0
-        
+
         if metrics.roe:
             if metrics.roe > 0.20:
                 score += 25
@@ -119,7 +119,7 @@ class FundamentalAnalyzer:
                 score += 5
             else:
                 score -= 10
-        
+
         if metrics.debt_to_equity:
             if metrics.debt_to_equity < 0.5:
                 score += 15
@@ -127,19 +127,19 @@ class FundamentalAnalyzer:
                 score += 5
             else:
                 score -= 10
-        
+
         if metrics.profit_margin:
             if metrics.profit_margin > 0.20:
                 score += 10
             elif metrics.profit_margin < 0.05:
                 score -= 10
-        
+
         return max(0, min(100, score))
-    
+
     def _calculate_growth_score(self, metrics: FundamentalMetrics) -> float:
         """Calculate growth score based on growth metrics."""
         score = 50.0
-        
+
         if metrics.revenue_growth:
             if metrics.revenue_growth > 0.30:
                 score += 30
@@ -149,12 +149,12 @@ class FundamentalAnalyzer:
                 score += 10
             elif metrics.revenue_growth < 0:
                 score -= 15
-        
+
         if metrics.free_cash_flow and metrics.free_cash_flow > 0:
             score += 10
-        
+
         return max(0, min(100, score))
-    
+
     def screen_assets(
         self,
         metrics: Dict[str, FundamentalMetrics],
@@ -166,11 +166,11 @@ class FundamentalAnalyzer:
             symbol for symbol, m in metrics.items()
             if m.overall_score >= min_score
         ]
-        
+
         # Sort by overall score and take top assets
         filtered.sort(
             key=lambda s: metrics[s].overall_score,
             reverse=True
         )
-        
+
         return filtered[:max_assets]

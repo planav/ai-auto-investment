@@ -37,7 +37,7 @@ const riskLevels = [
 
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { user, updateUser } = useAuthStore()
+  const { updateUser } = useAuthStore()
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({

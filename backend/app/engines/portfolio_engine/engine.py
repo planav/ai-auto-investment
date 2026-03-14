@@ -19,12 +19,12 @@ class PortfolioEngine:
     Portfolio Engine for asset allocation, risk management, and rebalancing.
     Integrates with Quant Engine for predictions and Research Agent for analysis.
     """
-    
+
     def __init__(self):
         self.allocation_optimizer = AllocationOptimizer()
         self.risk_engine = RiskEngine()
         self.rebalance_engine = RebalanceEngine()
-    
+
     async def optimize_allocation(
         self,
         assets: List[str],
@@ -35,24 +35,24 @@ class PortfolioEngine:
     ) -> AllocationResult:
         """
         Optimize portfolio allocation.
-        
+
         Args:
             assets: List of asset symbols
             predictions: Dictionary of predicted returns per asset
             risk_profile: Risk tolerance (conservative, moderate, aggressive)
             constraints: Portfolio constraints
             optimization_method: Optimization method to use
-            
+
         Returns:
             AllocationResult with optimal weights and metrics
         """
         if constraints is None:
             constraints = PortfolioConstraints()
-        
+
         # Generate covariance matrix (mock - in production use historical data)
         n_assets = len(assets)
         cov_matrix = self._generate_covariance_matrix(n_assets)
-        
+
         # Run optimization based on method
         if optimization_method == "mean_variance":
             result = self.allocation_optimizer.optimize(
@@ -76,25 +76,25 @@ class PortfolioEngine:
             )
         else:
             raise ValueError(f"Unknown optimization method: {optimization_method}")
-        
+
         return result
-    
+
     def _generate_covariance_matrix(self, n_assets: int) -> np.ndarray:
         """Generate a realistic covariance matrix."""
         # Create random correlation matrix
         random_matrix = np.random.randn(n_assets, n_assets)
         cov_matrix = random_matrix @ random_matrix.T
-        
+
         # Scale to realistic volatilities (15-30% annual)
         volatilities = np.random.uniform(0.15, 0.30, n_assets)
-        
+
         # Convert correlation to covariance
         for i in range(n_assets):
             for j in range(n_assets):
                 cov_matrix[i, j] = cov_matrix[i, j] * volatilities[i] * volatilities[j]
-        
+
         return cov_matrix
-    
+
     async def calculate_risk_metrics(
         self,
         portfolio_id: int,
@@ -103,12 +103,12 @@ class PortfolioEngine:
     ) -> RiskMetrics:
         """
         Calculate comprehensive risk metrics for a portfolio.
-        
+
         Args:
             portfolio_id: Portfolio identifier
             weights: Portfolio weights
             historical_returns: Historical returns matrix (optional)
-            
+
         Returns:
             RiskMetrics with all risk calculations
         """
@@ -117,15 +117,15 @@ class PortfolioEngine:
             n_assets = len(weights)
             n_periods = 252  # 1 year of daily returns
             historical_returns = np.random.randn(n_periods, n_assets) * 0.02
-        
+
         weights_array = np.array(list(weights.values()))
-        
+
         return self.risk_engine.calculate_risk_metrics(
             portfolio_id=portfolio_id,
             returns=historical_returns,
             weights=weights_array,
         )
-    
+
     async def check_rebalance_needed(
         self,
         current_weights: Dict[str, float],
@@ -134,12 +134,12 @@ class PortfolioEngine:
     ) -> RebalanceRecommendation:
         """
         Check if portfolio rebalancing is needed.
-        
+
         Args:
             current_weights: Current portfolio weights
             target_weights: Target portfolio weights
             threshold: Drift threshold
-            
+
         Returns:
             RebalanceRecommendation with analysis
         """
@@ -148,7 +148,7 @@ class PortfolioEngine:
             target_weights=target_weights,
             threshold=threshold,
         )
-    
+
     async def generate_rebalance_plan(
         self,
         portfolio_id: int,
@@ -158,13 +158,13 @@ class PortfolioEngine:
     ) -> RebalancePlan:
         """
         Generate detailed rebalancing execution plan.
-        
+
         Args:
             portfolio_id: Portfolio identifier
             current_weights: Current weights
             target_weights: Target weights
             portfolio_value: Total portfolio value
-            
+
         Returns:
             RebalancePlan with execution details
         """
@@ -174,7 +174,7 @@ class PortfolioEngine:
             target_weights=target_weights,
             portfolio_value=portfolio_value,
         )
-    
+
     async def stress_test_portfolio(
         self,
         portfolio_weights: Dict[str, float],
@@ -182,11 +182,11 @@ class PortfolioEngine:
     ) -> List[Dict[str, Any]]:
         """
         Run stress tests on portfolio.
-        
+
         Args:
             portfolio_weights: Portfolio weights
             scenarios: List of stress test scenarios
-            
+
         Returns:
             List of stress test results
         """
@@ -197,7 +197,7 @@ class PortfolioEngine:
                 "inflation_spike",
                 "tech_bubble_burst",
             ]
-        
+
         results = []
         for scenario in scenarios:
             result = self.risk_engine.stress_test(
@@ -212,9 +212,9 @@ class PortfolioEngine:
                 "recovery_time_days": result.recovery_time_days,
                 "worst_affected_assets": result.worst_affected_assets,
             })
-        
+
         return results
-    
+
     async def get_optimization_methods(self) -> List[Dict[str, Any]]:
         """Get available optimization methods."""
         return [
@@ -237,7 +237,7 @@ class PortfolioEngine:
                 "best_for": "Maximum diversification benefits",
             },
         ]
-    
+
     async def get_risk_profiles(self) -> List[Dict[str, Any]]:
         """Get available risk profiles."""
         return [
