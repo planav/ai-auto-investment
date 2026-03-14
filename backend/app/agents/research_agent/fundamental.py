@@ -1,6 +1,5 @@
 from typing import Dict, List, Optional
 from dataclasses import dataclass
-import random
 
 
 @dataclass
@@ -23,25 +22,46 @@ class FundamentalMetrics:
 
 
 class FundamentalAnalyzer:
-    """Analyzes fundamental metrics of assets."""
+    """Analyzes fundamental metrics of assets using real market data."""
     
     def __init__(self):
         self.metrics_cache: Dict[str, FundamentalMetrics] = {}
     
     async def analyze_asset(self, symbol: str) -> FundamentalMetrics:
-        """Analyze fundamental metrics for a single asset."""
-        # In production, fetch from financial data APIs
-        # For now, generate realistic mock data
-        
+        """Analyze fundamental metrics for a single asset using yfinance."""
+        import asyncio
+        import yfinance as yf
+
+        def _fetch():
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info or {}
+                return info
+            except Exception:
+                return {}
+
+        loop = asyncio.get_running_loop()
+        info = await loop.run_in_executor(None, _fetch)
+
+        # Extract fundamental metrics (handle missing fields gracefully)
+        pe_ratio = info.get("forwardPE") or info.get("trailingPE")
+        pb_ratio = info.get("priceToBook")
+        raw_dte = info.get("debtToEquity")
+        debt_to_equity = raw_dte / 100.0 if raw_dte is not None else None
+        roe = info.get("returnOnEquity")
+        revenue_growth = info.get("revenueGrowth")
+        profit_margin = info.get("profitMargins")
+        free_cash_flow = info.get("freeCashflow")
+
         metrics = FundamentalMetrics(
             symbol=symbol,
-            pe_ratio=random.uniform(10, 40),
-            pb_ratio=random.uniform(1, 5),
-            debt_to_equity=random.uniform(0.2, 1.5),
-            roe=random.uniform(0.05, 0.30),
-            revenue_growth=random.uniform(-0.1, 0.5),
-            profit_margin=random.uniform(0.05, 0.25),
-            free_cash_flow=random.uniform(1e6, 1e9),
+            pe_ratio=float(pe_ratio) if pe_ratio is not None else None,
+            pb_ratio=float(pb_ratio) if pb_ratio is not None else None,
+            debt_to_equity=float(debt_to_equity) if debt_to_equity is not None else None,
+            roe=float(roe) if roe is not None else None,
+            revenue_growth=float(revenue_growth) if revenue_growth is not None else None,
+            profit_margin=float(profit_margin) if profit_margin is not None else None,
+            free_cash_flow=float(free_cash_flow) if free_cash_flow is not None else None,
         )
         
         # Calculate scores

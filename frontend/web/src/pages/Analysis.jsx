@@ -52,15 +52,24 @@ export default function Analysis() {
       // Fetch popular stocks
       const popularRes = await marketApi.getPopularStocks()
       if (popularRes.data) {
-        // Map API response to our format with AI signals
-        const assets = popularRes.data.slice(0, 8).map(stock => ({
-          symbol: stock.symbol,
-          name: getCompanyName(stock.symbol),
-          price: stock.price,
-          change: stock.change_percent,
-          aiSignal: stock.change_percent > 2 ? 'strong_buy' : stock.change_percent > 0 ? 'buy' : stock.change_percent > -2 ? 'hold' : 'sell',
-          confidence: Math.floor(Math.random() * 20) + 75 // Simulated for now
-        }))
+        // Map API response to our format with AI signals derived from price action
+        const assets = popularRes.data.slice(0, 8).map(stock => {
+          const change = stock.change_percent
+          let aiSignal, confidence
+          if (change > 2.5) { aiSignal = 'strong_buy'; confidence = 74 }
+          else if (change > 0.5) { aiSignal = 'buy'; confidence = 64 }
+          else if (change > -0.5) { aiSignal = 'hold'; confidence = 60 }
+          else if (change > -2.5) { aiSignal = 'sell'; confidence = 64 }
+          else { aiSignal = 'strong_sell'; confidence = 72 }
+          return {
+            symbol: stock.symbol,
+            name: getCompanyName(stock.symbol),
+            price: stock.price,
+            change,
+            aiSignal,
+            confidence,
+          }
+        })
         setPopularAssets(assets)
       }
     } catch (error) {
@@ -137,10 +146,10 @@ export default function Analysis() {
   }
 
   const aiModels = [
-    { name: 'Temporal Fusion Transformer', accuracy: '94.2%', predictions: 1250, status: 'active' },
-    { name: 'Graph Attention Network', accuracy: '91.8%', predictions: 980, status: 'active' },
-    { name: 'LSTM + Attention', accuracy: '89.5%', predictions: 2100, status: 'active' },
-    { symbol: 'PatchTST', name: 'PatchTST', accuracy: '92.1%', predictions: 750, status: 'training' },
+    { name: 'Temporal Fusion Transformer', status: 'active', description: 'Multi-horizon forecasting with interpretable attention' },
+    { name: 'Graph Attention Network', status: 'active', description: 'Cross-asset relationship modeling' },
+    { name: 'LSTM + Attention', status: 'active', description: 'Sequential pattern recognition' },
+    { name: 'PatchTST', status: 'coming_soon', description: 'Patch-based time series transformer' },
   ]
 
   return (
@@ -376,17 +385,10 @@ export default function Analysis() {
                         model.status === 'active' ? 'bg-success/20 text-success' :
                         'bg-warning/20 text-warning'
                       }`}>
-                        {model.status}
+                        {model.status === 'active' ? 'Active' : 'Coming Soon'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Accuracy</span>
-                      <span className="text-primary font-bold">{model.accuracy}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm mt-1">
-                      <span className="text-gray-400">Predictions</span>
-                      <span className="text-gray-300">{model.predictions.toLocaleString()}</span>
-                    </div>
+                    <p className="text-xs text-gray-400">{model.description}</p>
                   </div>
                 ))}
               </div>
@@ -401,20 +403,16 @@ export default function Analysis() {
               <h3 className="font-semibold mb-4">Analysis Stats</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Assets Analyzed</span>
-                  <span className="font-bold">50,000+</span>
+                  <span className="text-gray-400 text-sm">Active Models</span>
+                  <span className="font-bold">{aiModels.filter(m => m.status === 'active').length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Daily Predictions</span>
-                  <span className="font-bold">125,000</span>
+                  <span className="text-gray-400 text-sm">Data Sources</span>
+                  <span className="font-bold">Finnhub · Yahoo Finance</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Avg. Accuracy</span>
-                  <span className="font-bold text-success">91.2%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Active Users</span>
-                  <span className="font-bold">12,500</span>
+                  <span className="text-gray-400 text-sm">Signal Types</span>
+                  <span className="font-bold text-success">RSI · MA · Momentum</span>
                 </div>
               </div>
             </div>

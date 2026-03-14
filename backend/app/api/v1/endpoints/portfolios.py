@@ -80,7 +80,9 @@ async def create_portfolio(
         name=portfolio_in.name,
         description=portfolio_in.description,
         total_value=portfolio_in.investment_amount,
+        invested_amount=portfolio_in.investment_amount,
         cash_reserve_pct=portfolio_in.cash_reserve_pct,
+        risk_profile=portfolio_in.risk_profile,
         model_type=portfolio_in.model_type,
     )
 
