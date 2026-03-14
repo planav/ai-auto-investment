@@ -7,6 +7,7 @@ celery_app = Celery(
     backend="redis://redis:6379/0"
 )
 
+
 @celery_app.task
 def train_model_task():
     # Simulate training (replace with ML pipeline)

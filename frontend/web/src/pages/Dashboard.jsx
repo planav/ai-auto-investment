@@ -22,10 +22,9 @@ import {
   Layers
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import { marketApi, portfolioApi, walletApi, dashboardApi } from '../services/api'
+import { marketApi, dashboardApi } from '../services/api'
 import PortfolioChart from '../components/PortfolioChart'
 import AssetAllocation from '../components/AssetAllocation'
-import toast from 'react-hot-toast'
 
 export default function Dashboard() {
   const { isAuthenticated, user } = useAuthStore()

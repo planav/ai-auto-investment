@@ -10,6 +10,7 @@ settings = get_settings()
 _GEMINI_CLIENT = genai.Client(api_key=settings.gemini_api_key)
 _GEMINI_MODEL = "gemini-1.5-flash"
 
+
 def query_gemini(user_query: str):
     # Check cache (graceful fallback if Redis is unavailable)
     try:
@@ -38,6 +39,7 @@ def query_gemini(user_query: str):
         "confidence": 0.85
     }
 
+
 async def stream_gemini(user_query: str) -> AsyncGenerator[dict, None]:
     """
     Async generator that streams Gemini responses using the official SDK.
@@ -49,6 +51,3 @@ async def stream_gemini(user_query: str) -> AsyncGenerator[dict, None]:
         if hasattr(chunk, "text") and chunk.text:
             yield {"response": chunk.text}
         await asyncio.sleep(0)  # allow event loop to switch
-
-
-

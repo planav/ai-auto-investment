@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -51,9 +52,6 @@ class PortfolioUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     cash_reserve_pct: Optional[float] = Field(None, ge=0.0, le=0.5)
-
-
-from datetime import datetime
 
 
 class PortfolioResponse(PortfolioBase):

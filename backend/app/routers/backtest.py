@@ -5,6 +5,7 @@ import numpy as np
 
 router = APIRouter()
 
+
 @router.post("/backtest")
 async def backtest(request: Request):
     data = await request.json()
@@ -13,19 +14,23 @@ async def backtest(request: Request):
     result = run_backtest(prices, weights)
     return result
 
+
 def sharpe_ratio(returns, risk_free_rate=0.0):
     excess_returns = returns - risk_free_rate
     return float(np.mean(excess_returns) / np.std(excess_returns))
 
+
 def sortino_ratio(returns, risk_free_rate=0.0):
     downside = returns[returns < risk_free_rate]
     return float(np.mean(returns - risk_free_rate) / np.std(downside))
+
 
 def max_drawdown(returns):
     cum_returns = np.cumprod(1 + returns)
     peak = np.maximum.accumulate(cum_returns)
     drawdown = (cum_returns - peak) / peak
     return float(np.min(drawdown))
+
 
 @router.post("/backtest/metrics")
 async def calculate_metrics(request: Request):
@@ -36,4 +41,3 @@ async def calculate_metrics(request: Request):
         "sortino_ratio": sortino_ratio(returns),
         "max_drawdown": max_drawdown(returns)
     }
-

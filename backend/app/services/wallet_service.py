@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from app.models.wallet import Wallet, WalletTransaction, TransactionType, TransactionStatus
@@ -7,8 +7,6 @@ from app.schemas.wallet import (
     WalletBalanceResponse,
     TransactionResponse,
     TransactionResponseList,
-    DepositRequest,
-    WithdrawRequest,
 )
 
 
@@ -22,7 +20,7 @@ class WalletService:
             select(Wallet).where(Wallet.user_id == user_id)
         )
         wallet = result.scalar_one_or_none()
-        
+
         if not wallet:
             wallet = Wallet(
                 user_id=user_id,
@@ -34,7 +32,7 @@ class WalletService:
             self.db.add(wallet)
             await self.db.commit()
             await self.db.refresh(wallet)
-        
+
         return wallet
 
     async def get_wallet(self, user_id: int) -> Optional[Wallet]:
@@ -58,11 +56,11 @@ class WalletService:
     async def deposit(self, user_id: int, amount: float, description: Optional[str] = None) -> WalletResponse:
         """Deposit money to wallet"""
         wallet = await self.get_or_create_wallet(user_id)
-        
+
         balance_before = wallet.balance
         wallet.balance += amount
         wallet.total_deposited += amount
-        
+
         transaction = WalletTransaction(
             wallet_id=wallet.id,
             type=TransactionType.DEPOSIT,
@@ -72,24 +70,24 @@ class WalletService:
             status=TransactionStatus.COMPLETED,
             description=description or "Deposit to investment wallet",
         )
-        
+
         self.db.add(transaction)
         await self.db.commit()
         await self.db.refresh(wallet)
-        
+
         return WalletResponse.model_validate(wallet)
 
     async def withdraw(self, user_id: int, amount: float, description: Optional[str] = None) -> Optional[WalletResponse]:
         """Withdraw money from wallet"""
         wallet = await self.get_or_create_wallet(user_id)
-        
+
         if wallet.balance < amount:
             return None
-        
+
         balance_before = wallet.balance
         wallet.balance -= amount
         wallet.total_withdrawn += amount
-        
+
         transaction = WalletTransaction(
             wallet_id=wallet.id,
             type=TransactionType.WITHDRAW,
@@ -99,24 +97,24 @@ class WalletService:
             status=TransactionStatus.COMPLETED,
             description=description or "Withdrawal from investment wallet",
         )
-        
+
         self.db.add(transaction)
         await self.db.commit()
         await self.db.refresh(wallet)
-        
+
         return WalletResponse.model_validate(wallet)
 
     async def deduct_for_investment(self, user_id: int, amount: float, reference_id: str) -> Optional[WalletResponse]:
         """Deduct amount from wallet for investment (creates trade_buy transaction)"""
         wallet = await self.get_or_create_wallet(user_id)
-        
+
         if wallet.balance < amount:
             return None
-        
+
         balance_before = wallet.balance
         wallet.balance -= amount
         wallet.total_invested += amount
-        
+
         transaction = WalletTransaction(
             wallet_id=wallet.id,
             type=TransactionType.TRADE_BUY,
@@ -124,23 +122,23 @@ class WalletService:
             balance_before=balance_before,
             balance_after=wallet.balance,
             status=TransactionStatus.COMPLETED,
-            description=f"Investment in portfolio",
+            description="Investment in portfolio",
             reference_id=reference_id,
         )
-        
+
         self.db.add(transaction)
         await self.db.commit()
         await self.db.refresh(wallet)
-        
+
         return WalletResponse.model_validate(wallet)
 
     async def add_from_sale(self, user_id: int, amount: float, reference_id: str, description: str) -> WalletResponse:
         """Add amount to wallet from portfolio sale"""
         wallet = await self.get_or_create_wallet(user_id)
-        
+
         balance_before = wallet.balance
         wallet.balance += amount
-        
+
         transaction = WalletTransaction(
             wallet_id=wallet.id,
             type=TransactionType.TRADE_SELL,
@@ -151,24 +149,24 @@ class WalletService:
             description=description,
             reference_id=reference_id,
         )
-        
+
         self.db.add(transaction)
         await self.db.commit()
         await self.db.refresh(wallet)
-        
+
         return WalletResponse.model_validate(wallet)
 
     async def get_transactions(
-        self, 
-        user_id: int, 
-        page: int = 1, 
+        self,
+        user_id: int,
+        page: int = 1,
         page_size: int = 20
     ) -> TransactionResponseList:
         """Get transaction history"""
         wallet = await self.get_or_create_wallet(user_id)
-        
+
         offset = (page - 1) * page_size
-        
+
         result = await self.db.execute(
             select(WalletTransaction)
             .where(WalletTransaction.wallet_id == wallet.id)
@@ -177,13 +175,13 @@ class WalletService:
             .limit(page_size)
         )
         transactions = result.scalars().all()
-        
+
         count_result = await self.db.execute(
             select(WalletTransaction)
             .where(WalletTransaction.wallet_id == wallet.id)
         )
         total = len(count_result.scalars().all())
-        
+
         return TransactionResponseList(
             transactions=[TransactionResponse.model_validate(t) for t in transactions],
             total=total,

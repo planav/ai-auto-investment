@@ -29,7 +29,7 @@ export default function Analysis() {
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState([])
   const [aiAnalysis, setAiAnalysis] = useState(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [, setIsAnalyzing] = useState(false)
 
   // Fetch real market data on mount
   useEffect(() => {
@@ -120,7 +120,7 @@ export default function Analysis() {
         toast(`Showing AI analysis for ${upperQuery}`, { icon: 'ℹ️' })
         await fetchAIAnalysis(upperQuery)
       }
-    } catch (error) {
+    } catch {
       // Search API unavailable - try AI analysis directly with typed symbol
       toast(`Showing AI analysis for ${upperQuery}`, { icon: 'ℹ️' })
       await fetchAIAnalysis(upperQuery)

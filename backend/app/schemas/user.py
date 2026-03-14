@@ -38,7 +38,7 @@ class UserInDB(UserBase):
     id: int
     is_active: bool
     is_superuser: bool
-    
+
     class Config:
         from_attributes = True
 

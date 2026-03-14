@@ -35,7 +35,7 @@ class WalletResponse(WalletInDB):
 
 
 class WalletWithTransactions(WalletResponse):
-    transactions: List["WalletTransactionResponse"] = []
+    transactions: List["TransactionResponse"] = []
 
 
 class TransactionBase(BaseModel):

@@ -75,7 +75,7 @@ export default function Portfolio() {
     try {
       const perfRes = await portfolioApi.getPerformance(portfolioId)
       setPerformance(perfRes.data)
-    } catch (e) {
+    } catch {
       console.log('Performance data not available')
       setPerformance(null)
     }
@@ -395,9 +395,6 @@ export default function Portfolio() {
                           <tbody>
                             {holdings.map((holding, index) => {
                               const signal = getSignalDisplay(holding)
-                              const returnPct = holding.avg_price > 0 
-                                ? ((holding.current_price - holding.avg_price) / holding.avg_price) * 100 
-                                : 0
                               return (
                                 <tr key={index} className="border-t border-gray-800 hover:bg-dark-lighter/50">
                                   <td className="p-4">

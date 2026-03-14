@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
@@ -15,10 +15,10 @@ class AlphaFactor:
 
 class FactorEngine:
     """Generates alpha factors for deep learning models."""
-    
+
     def __init__(self):
         self.factors = self._initialize_factors()
-    
+
     def _initialize_factors(self) -> Dict[str, AlphaFactor]:
         """Initialize all available alpha factors."""
         return {
@@ -51,7 +51,7 @@ class FactorEngine:
                 description="MACD indicator",
                 category="momentum",
             ),
-            
+
             # Value factors
             "pe_ratio": AlphaFactor(
                 name="pe_ratio",
@@ -78,7 +78,7 @@ class FactorEngine:
                 description="Enterprise Value to EBITDA",
                 category="value",
             ),
-            
+
             # Quality factors
             "roe": AlphaFactor(
                 name="roe",
@@ -105,7 +105,7 @@ class FactorEngine:
                 description="Current ratio",
                 category="quality",
             ),
-            
+
             # Volatility factors
             "volatility_20d": AlphaFactor(
                 name="volatility_20d",
@@ -127,7 +127,7 @@ class FactorEngine:
                 description="Market beta",
                 category="volatility",
             ),
-            
+
             # Liquidity factors
             "avg_volume": AlphaFactor(
                 name="avg_volume",
@@ -144,7 +144,7 @@ class FactorEngine:
                 description="Share turnover ratio",
                 category="liquidity",
             ),
-            
+
             # Technical factors
             "sma_ratio": AlphaFactor(
                 name="sma_ratio",
@@ -162,7 +162,7 @@ class FactorEngine:
                 category="technical",
             ),
         }
-    
+
     def calculate_technical_factors(
         self,
         prices: pd.DataFrame,
@@ -170,38 +170,38 @@ class FactorEngine:
     ) -> pd.DataFrame:
         """
         Calculate technical factors from price and volume data.
-        
+
         Args:
             prices: DataFrame with price data (OHLC)
             volumes: DataFrame with volume data
-            
+
         Returns:
             DataFrame with calculated factors
         """
         factors = pd.DataFrame(index=prices.index)
-        
+
         # Momentum factors
         factors["momentum_1m"] = self._calculate_momentum(prices, 20)
         factors["momentum_3m"] = self._calculate_momentum(prices, 60)
         factors["momentum_12m"] = self._calculate_momentum(prices, 240, offset=20)
         factors["rsi"] = self._calculate_rsi(prices, 14)
         factors["macd"] = self._calculate_macd(prices)
-        
+
         # Volatility factors
         factors["volatility_20d"] = self._calculate_volatility(prices, 20)
         factors["volatility_60d"] = self._calculate_volatility(prices, 60)
         factors["max_drawdown_1m"] = self._calculate_max_drawdown(prices, 20)
-        
+
         # Technical factors
         factors["sma_ratio"] = self._calculate_sma_ratio(prices, 20)
         factors["bb_position"] = self._calculate_bb_position(prices, 20)
         factors["atr"] = self._calculate_atr(prices, 14)
-        
+
         # Volume factors
         factors["volume_sma_ratio"] = volumes / volumes.rolling(20).mean()
-        
+
         return factors
-    
+
     def _calculate_momentum(
         self,
         prices: pd.DataFrame,
@@ -213,7 +213,7 @@ class FactorEngine:
         if offset > 0:
             return (close.shift(offset) - close.shift(period + offset)) / close.shift(period + offset)
         return (close - close.shift(period)) / close.shift(period)
-    
+
     def _calculate_rsi(self, prices: pd.DataFrame, period: int = 14) -> pd.Series:
         """Calculate Relative Strength Index."""
         close = prices["close"] if "close" in prices.columns else prices.iloc[:, -1]
@@ -222,33 +222,33 @@ class FactorEngine:
         loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
         rs = gain / loss
         return 100 - (100 / (1 + rs))
-    
+
     def _calculate_macd(self, prices: pd.DataFrame) -> pd.Series:
         """Calculate MACD."""
         close = prices["close"] if "close" in prices.columns else prices.iloc[:, -1]
         ema_12 = close.ewm(span=12).mean()
         ema_26 = close.ewm(span=26).mean()
         return ema_12 - ema_26
-    
+
     def _calculate_volatility(self, prices: pd.DataFrame, period: int = 20) -> pd.Series:
         """Calculate realized volatility."""
         close = prices["close"] if "close" in prices.columns else prices.iloc[:, -1]
         returns = close.pct_change()
         return returns.rolling(window=period).std() * np.sqrt(252)
-    
+
     def _calculate_max_drawdown(self, prices: pd.DataFrame, period: int = 20) -> pd.Series:
         """Calculate maximum drawdown."""
         close = prices["close"] if "close" in prices.columns else prices.iloc[:, -1]
         rolling_max = close.rolling(window=period, min_periods=1).max()
         drawdown = (close - rolling_max) / rolling_max
         return drawdown.rolling(window=period, min_periods=1).min()
-    
+
     def _calculate_sma_ratio(self, prices: pd.DataFrame, period: int = 20) -> pd.Series:
         """Calculate price to SMA ratio."""
         close = prices["close"] if "close" in prices.columns else prices.iloc[:, -1]
         sma = close.rolling(window=period).mean()
         return close / sma
-    
+
     def _calculate_bb_position(self, prices: pd.DataFrame, period: int = 20) -> pd.Series:
         """Calculate Bollinger Bands position."""
         close = prices["close"] if "close" in prices.columns else prices.iloc[:, -1]
@@ -257,23 +257,23 @@ class FactorEngine:
         upper = sma + (std * 2)
         lower = sma - (std * 2)
         return (close - lower) / (upper - lower)
-    
+
     def _calculate_atr(self, prices: pd.DataFrame, period: int = 14) -> pd.Series:
         """Calculate Average True Range."""
         high = prices["high"] if "high" in prices.columns else prices.iloc[:, 0]
         low = prices["low"] if "low" in prices.columns else prices.iloc[:, 1]
         close = prices["close"] if "close" in prices.columns else prices.iloc[:, -1]
-        
+
         tr1 = high - low
         tr2 = abs(high - close.shift())
         tr3 = abs(low - close.shift())
         tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
         return tr.rolling(window=period).mean()
-    
+
     def get_factor_list(self) -> List[str]:
         """Get list of all available factor names."""
         return list(self.factors.keys())
-    
+
     def get_factors_by_category(self, category: str) -> List[str]:
         """Get factors filtered by category."""
         return [

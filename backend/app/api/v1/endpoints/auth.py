@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -33,13 +32,13 @@ async def register(
     # Check if user already exists
     result = await db.execute(select(User).where(User.email == user_in.email))
     existing_user = result.scalar_one_or_none()
-    
+
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
-    
+
     # Create new user
     user = User(
         email=user_in.email,
@@ -51,11 +50,11 @@ async def register(
         monthly_contribution=user_in.monthly_contribution,
         preferred_assets=user_in.preferred_assets,
     )
-    
+
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    
+
     return user
 
 
@@ -67,24 +66,24 @@ async def login(
     """Authenticate user and return tokens."""
     result = await db.execute(select(User).where(User.email == user_in.email))
     user = result.scalar_one_or_none()
-    
+
     if not user or not verify_password(user_in.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user",
         )
-    
+
     # Create tokens - convert user.id to string for JWT sub claim
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -99,14 +98,14 @@ async def refresh_token(
     """Refresh access token using refresh token."""
     token = credentials.credentials
     payload = decode_token(token)
-    
+
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(
@@ -114,11 +113,11 @@ async def refresh_token(
             detail="Invalid token payload",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Create new tokens - ensure user_id is a string for JWT sub claim
     access_token = create_access_token(data={"sub": str(user_id)})
     refresh_token = create_refresh_token(data={"sub": str(user_id)})
-    
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,

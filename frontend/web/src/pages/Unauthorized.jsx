@@ -4,7 +4,6 @@ import { LogIn, ShieldAlert } from 'lucide-react'
 
 export default function Unauthorized() {
   const location = useLocation()
-  const from = location.state?.from?.pathname || '/dashboard'
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 pt-20">

@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def run_backtest(prices: pd.DataFrame, weights: dict):
     """
     prices: DataFrame with datetime index and asset columns

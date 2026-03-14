@@ -5,6 +5,7 @@ import datetime
 
 router = APIRouter()
 
+
 @router.websocket("/ws/market-data")
 async def market_data_ws(websocket: WebSocket):
     await websocket.accept()

@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import {
   AreaChart,
   Area,
@@ -9,39 +8,40 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-export default function PortfolioChart() {
-  // Generate mock data
-  const data = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    let value = 100000
-    
-    return months.map((month) => {
-      const change = (Math.random() - 0.3) * 5000
-      value += change
-      return {
-        month,
-        value: Math.round(value),
-        benchmark: Math.round(value * 0.95),
-      }
-    })
-  }, [])
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="glass-card p-3 border border-primary/30">
-          <p className="text-gray-400 text-sm mb-1">{label}</p>
-          <p className="text-primary font-bold">
-            ${payload[0].value.toLocaleString()}
-          </p>
-          <p className="text-gray-500 text-xs">
-            Benchmark: ${payload[1].value.toLocaleString()}
-          </p>
-        </div>
-      )
+// Generate mock data once at module level to avoid impure function calls during render
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MOCK_CHART_DATA = (() => {
+  let value = 100000
+  return months.map((month) => {
+    const change = (Math.random() - 0.3) * 5000
+    value += change
+    return {
+      month,
+      value: Math.round(value),
+      benchmark: Math.round(value * 0.95),
     }
-    return null
+  })
+})()
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="glass-card p-3 border border-primary/30">
+        <p className="text-gray-400 text-sm mb-1">{label}</p>
+        <p className="text-primary font-bold">
+          ${payload[0].value.toLocaleString()}
+        </p>
+        <p className="text-gray-500 text-xs">
+          Benchmark: ${payload[1].value.toLocaleString()}
+        </p>
+      </div>
+    )
   }
+  return null
+}
+
+export default function PortfolioChart() {
+  const data = MOCK_CHART_DATA
 
   return (
     <div className="h-80">

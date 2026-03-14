@@ -6,8 +6,11 @@ from app.services.gemini_service import query_gemini, stream_gemini
 router = APIRouter()
 
 # Define request schema
+
+
 class GeminiQueryRequest(BaseModel):
     query: str
+
 
 @router.post("/gemini-query")
 async def gemini_query(request: GeminiQueryRequest):
@@ -16,6 +19,7 @@ async def gemini_query(request: GeminiQueryRequest):
     """
     result = query_gemini(request.query)
     return JSONResponse(content=result)
+
 
 @router.websocket("/gemini-stream")
 async def gemini_stream(websocket: WebSocket):
