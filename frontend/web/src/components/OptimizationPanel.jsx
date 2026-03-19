@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import ComparisonChart from "../components/ComparisonChart";
+
 
 export default function OptimizationPanel() {
   const [weights, setWeights] = useState({ AAPL: 0.5, TSLA: 0.5 });
@@ -91,6 +93,13 @@ export default function OptimizationPanel() {
               <p>Sharpe Ratio: {optimized.sharpe_ratio}</p>
             </div>
           </div>
+           {/* Comparison Chart */}
+    <ComparisonChart
+      userWeights={weights}
+      optimizedWeights={optimized.optimized_weights}
+    />
+  </div>
+)}
         </div>
       )}
     </div>
