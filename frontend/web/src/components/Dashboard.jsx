@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useMarketData } from "../hooks/useMarketData";
 import { useGeminiStream } from "../hooks/useGeminiStream";
+import { useBacktest } from "../hooks/useBacktest";
 
 export default function Dashboard() {
   const { marketData } = useMarketData(); // updates every 2s
@@ -55,3 +56,29 @@ export default function Dashboard() {
     </div>
   );
 }
+
+function BacktestPanel() {
+  const { runBacktest, calculateMetrics, result, loading, error } = useBacktest();
+
+  const handleRun = () => {
+    runBacktest(
+      { AAPL: [100, 101, 102, 103], MSFT: [200, 202, 205, 207] },
+      { AAPL: 0.6, MSFT: 0.4 }
+    );
+  };
+
+  return (
+    <div className="p-4 border rounded bg-white shadow">
+      <h2 className="text-lg font-bold mb-2">📊 Backtest</h2>
+      <button onClick={handleRun} className="bg-green-500 text-white px-4 py-2 rounded">
+        Run Sample Backtest
+      </button>
+      {loading && <p>Running backtest...</p>}
+      {error && <p className="text-red-500">Error: {error}</p>}
+      {result && (
+        <pre className="text-sm whitespace-pre-wrap">
+          {JSON.stringify(result, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
