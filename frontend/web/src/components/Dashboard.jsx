@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useMarketData } from "../hooks/useMarketData";
 import { useGeminiStream } from "../hooks/useGeminiStream";
 import { useBacktest } from "../hooks/useBacktest";
+import OptimizationPanel from "../components/OptimizationPanel";
+
 
 export default function Dashboard() {
   const { marketData } = useMarketData(); // updates every 2s
@@ -27,6 +29,7 @@ export default function Dashboard() {
         ) : (
           <p>Loading market data...</p>
         )}
+         <OptimizationPanel />
       </div>
 
       {/* Gemini Insights Panel */}
