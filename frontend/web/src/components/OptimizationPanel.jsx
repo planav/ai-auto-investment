@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import ComparisonChart from "../components/ComparisonChart";
 import DualEquityChart from "../components/DualEquityChart";
 
-
-
 export default function OptimizationPanel() {
   const [weights, setWeights] = useState({ AAPL: 0.5, TSLA: 0.5 });
   const [optimized, setOptimized] = useState(null);
@@ -33,6 +31,7 @@ export default function OptimizationPanel() {
             { date: "2024-01-02", AAPL: 0.015, TSLA: 0.005 },
             { date: "2024-01-03", AAPL: -0.01, TSLA: 0.02 },
           ],
+          user_weights: weights, // send slider weights to backend
         }),
       });
       const data = await response.json();
@@ -95,18 +94,19 @@ export default function OptimizationPanel() {
               <p>Sharpe Ratio: {optimized.sharpe_ratio}</p>
             </div>
           </div>
-           {/* Comparison Chart */}
-    <ComparisonChart
-      userWeights={weights}
-      optimizedWeights={optimized.optimized_weights}
-    />
-  </div>
-      
-<DualEquityChart
-    userCurve={optimized.user_equity_curve}
-    optimizedCurve={optimized.optimized_equity_curve}
-    dates={optimized.dates}
-  />
+
+          {/* Comparison Chart */}
+          <ComparisonChart
+            userWeights={weights}
+            optimizedWeights={optimized.optimized_weights}
+          />
+
+          {/* Dual Equity Curve Chart */}
+          <DualEquityChart
+            userCurve={optimized.user_equity_curve}
+            optimizedCurve={optimized.optimized_equity_curve}
+            dates={optimized.dates}
+          />
         </div>
       )}
     </div>
