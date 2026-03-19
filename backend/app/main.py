@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Import routers
 from app.routers import gemini
 from app.api.routes import router
 from app.core.config import get_settings
@@ -32,27 +33,15 @@ app = FastAPI(
     redoc_url="/redoc" if settings.is_development else None,
 )
 
-#  Register Gemini router here (not inside FastAPI constructor)
+# ✅ Register routers
 app.include_router(gemini.router, prefix="/api", tags=["Gemini"])
-
-#  Register your existing API routes
-app.include_router(router, prefix="/api")
-
-# register backtest routers
+app.include_router(router, prefix="/api")  # existing API routes
 app.include_router(backtest.router, prefix="/api", tags=["Backtest"])
-
-# register streaming routers
 app.include_router(stream.router, prefix="/api", tags=["Streaming"])
-
-# register model routers
 app.include_router(model.router, prefix="/api/model", tags=["Model"])
 
-# CORS middleware — origins are read from the CORS_ORIGINS env variable so that
-# the same image works for both local development and production deployments.
+# ✅ CORS middleware
 _cors_origins = settings.cors_origins_list
-
-# Always include the standard local-dev origins so developers don't need to
-# configure anything extra when running the backend locally.
 _default_local_origins = [
     "http://localhost:5173",
     "http://localhost:5174",
@@ -75,7 +64,7 @@ app.add_middleware(
     max_age=600,
 )
 
-
+# ✅ Health + Root endpoints
 @app.get("/health")
 async def health_check():
     return {
@@ -96,5 +85,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)
