@@ -1,4 +1,4 @@
-import { useMarketData } from "../hooks/useMarketData";
+import { useMarketData } from "../hooks/useMarketData.js";
 
 function MarketDataPanel() {
   const { data, error } = useMarketData();
