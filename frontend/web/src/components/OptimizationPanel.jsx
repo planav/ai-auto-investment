@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import ComparisonChart from "../components/ComparisonChart";
+import DualEquityChart from "../components/DualEquityChart";
+
 
 
 export default function OptimizationPanel() {
@@ -99,7 +101,12 @@ export default function OptimizationPanel() {
       optimizedWeights={optimized.optimized_weights}
     />
   </div>
-)}
+      
+<DualEquityChart
+    userCurve={optimized.user_equity_curve}
+    optimizedCurve={optimized.optimized_equity_curve}
+    dates={optimized.dates}
+  />
         </div>
       )}
     </div>
