@@ -14,6 +14,7 @@ export function useGeminiStream() {
     // Close any existing connection before starting a new one
     if (wsRef.current) {
       wsRef.current.close();
+      wsRef.current = null;
     }
 
     const ws = new WebSocket("ws://localhost:8000/api/gemini-stream");
@@ -28,6 +29,9 @@ export function useGeminiStream() {
         const data = JSON.parse(event.data);
         if (data.response) {
           setOutput((prev) => prev + data.response);
+        } else if (data.error) {
+          setError(data.error);
+          setLoading(false);
         }
       } catch {
         // Fallback if backend sends plain text
@@ -42,6 +46,7 @@ export function useGeminiStream() {
 
     ws.onclose = () => {
       setLoading(false);
+      wsRef.current = null;
     };
   };
 
@@ -50,6 +55,7 @@ export function useGeminiStream() {
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
     };
   }, []);
