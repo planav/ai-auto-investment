@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useGeminiStream } from "../hooks/useGeminiStream";
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
@@ -124,6 +125,32 @@ export default function Dashboard() {
     try {
       const dashboardRes = await dashboardApi.getDashboard()
       const data = dashboardRes.data
+
+      function Dashboard() {
+  const { runStream, output, loading, error } = useGeminiStream();
+
+  const handleClick = () => {
+    runStream("Summarize today's market trends");
+  };
+
+  return (
+    <div className="dashboard-container">
+      {/* Existing dashboard sections: portfolio, charts, etc. */}
+
+      <section className="insights-panel">
+        <h2>AI Insights</h2>
+        <button onClick={handleClick} disabled={loading}>
+          {loading ? "Streaming..." : "Run Gemini Stream"}
+        </button>
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        <div className="stream-output">{output}</div>
+      </section>
+    </div>
+  );
+}
+
+export default Dashboard;
+
       
       // Set portfolios
       const userPortfolios = data.portfolios || []
