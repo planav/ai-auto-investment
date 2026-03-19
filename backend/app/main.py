@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.routers import backtest
 from app.routers import stream
 from app.routers import model
+from app.routers import optimization
 
 settings = get_settings()
 
@@ -39,6 +40,7 @@ app.include_router(router, prefix="/api")  # existing API routes
 app.include_router(backtest.router, prefix="/api", tags=["Backtest"])
 app.include_router(stream.router, prefix="/api", tags=["Streaming"])
 app.include_router(model.router, prefix="/api/model", tags=["Model"])
+app.include_router(optimization.router)
 
 # ✅ CORS middleware
 _cors_origins = settings.cors_origins_list
