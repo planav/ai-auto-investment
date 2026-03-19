@@ -1,14 +1,20 @@
 import React, { useState } from "react";
 
 export default function OptimizationPanel() {
-  const [returns, setReturns] = useState([
-    { date: "2024-01-01", AAPL: 0.01, TSLA: -0.02 },
-    { date: "2024-01-02", AAPL: 0.015, TSLA: 0.005 },
-    { date: "2024-01-03", AAPL: -0.01, TSLA: 0.02 },
-  ]);
+  const [weights, setWeights] = useState({ AAPL: 0.5, TSLA: 0.5 });
   const [optimized, setOptimized] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleSliderChange = (asset, value) => {
+    const newWeights = { ...weights, [asset]: parseFloat(value) };
+    // Normalize weights to sum = 1
+    const total = Object.values(newWeights).reduce((a, b) => a + b, 0);
+    const normalized = Object.fromEntries(
+      Object.entries(newWeights).map(([k, v]) => [k, v / total])
+    );
+    setWeights(normalized);
+  };
 
   const runOptimization = async () => {
     setLoading(true);
@@ -17,7 +23,13 @@ export default function OptimizationPanel() {
       const response = await fetch("http://localhost:8000/api/optimize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ returns }),
+        body: JSON.stringify({
+          returns: [
+            { date: "2024-01-01", AAPL: 0.01, TSLA: -0.02 },
+            { date: "2024-01-02", AAPL: 0.015, TSLA: 0.005 },
+            { date: "2024-01-03", AAPL: -0.01, TSLA: 0.02 },
+          ],
+        }),
       });
       const data = await response.json();
       setOptimized(data);
@@ -31,6 +43,26 @@ export default function OptimizationPanel() {
   return (
     <div className="p-6 border rounded shadow bg-white mt-6">
       <h2 className="text-lg font-bold mb-4">⚖️ Portfolio Optimization</h2>
+
+      {/* Sliders for weights */}
+      <div className="space-y-4 mb-4">
+        {Object.keys(weights).map((asset) => (
+          <div key={asset}>
+            <label className="block font-semibold mb-1">
+              {asset}: {(weights[asset] * 100).toFixed(1)}%
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={weights[asset]}
+              onChange={(e) => handleSliderChange(asset, e.target.value)}
+              className="w-full"
+            />
+          </div>
+        ))}
+      </div>
 
       <button
         onClick={runOptimization}
