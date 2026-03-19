@@ -7,6 +7,7 @@ passlib[bcrypt]==1.7.4
 argon2-cffi==23.1.0
 pandas==2.2.2
 yfinance==0.2.40
+loguru==0.7.2
 
 # Database
 sqlalchemy==2.0.25
