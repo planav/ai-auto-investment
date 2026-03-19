@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useGeminiStream } from "../hooks/useGeminiStream";
+import MarketDataPanel from "../components/MarketDataPanel";
+import InsightsPanel from "../components/InsightsPanel";
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
@@ -132,6 +134,14 @@ export default function Dashboard() {
   const handleClick = () => {
     runStream("Summarize today's market trends");
   };
+         return (
+    <div className="dashboard-container">
+      {/* Existing sections: portfolio, charts, etc. */}
+
+      <MarketDataPanel />
+      <InsightsPanel prompt="Summarize today's market trends" />
+    </div>
+  );
 
   return (
     <div className="dashboard-container">
