@@ -8,6 +8,7 @@ argon2-cffi==23.1.0
 pandas==2.2.2
 yfinance==0.2.40
 loguru==0.7.2
+settings==2.2.1
 
 # Database
 sqlalchemy==2.0.25
