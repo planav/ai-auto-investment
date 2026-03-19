@@ -14,11 +14,19 @@ function MarketDataPanel() {
   return (
     <div className="market-data-panel">
       <h2>Live Market Data</h2>
-      <p><strong>Timestamp:</strong> {data.timestamp}</p>
+      <p>
+        <strong>Timestamp:</strong> {data.timestamp}
+      </p>
       <ul>
-        <li><strong>AAPL:</strong> ${data.AAPL}</li>
-        <li><strong>TSLA:</strong> ${data.TSLA}</li>
-        <li><strong>NIFTY:</strong> {data.NIFTY}</li>
+        <li>
+          <strong>AAPL:</strong> ${data.AAPL}
+        </li>
+        <li>
+          <strong>TSLA:</strong> ${data.TSLA}
+        </li>
+        <li>
+          <strong>NIFTY:</strong> {data.NIFTY}
+        </li>
       </ul>
     </div>
   );
