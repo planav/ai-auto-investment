@@ -261,7 +261,9 @@ pip install -r requirements.txt
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your configuration
+# Generate a random SECRET_KEY and write it into .env automatically:
+python scripts/generate_secret_key.py --write
+# Then edit .env to add your database URL and any API keys
 
 # Initialize database
 alembic upgrade head
