@@ -273,21 +273,29 @@ async def create_portfolio(
         if not quotes:
             raise HTTPException(status_code=503, detail="Market data unavailable. Please retry.")
 
-        # ML scoring
-        from app.engines.ml_engine.predictor import (
-            score_stocks, compute_sector_momentum
-        )
-        sector_momentum = compute_sector_momentum(quotes, sectors_by_symbol)
-        vol_estimates = {sym: _KNOWN_VOL.get(sym, 0.30) for sym in quotes}
+        # ── ML / DL Scoring ──────────────────────────────────────────────
+        # Try DL ensemble (TFT + LSTM + N-BEATS) first;
+        # fall back to sklearn RF+GB if models not yet trained.
+        from app.engines.dl_engine.predictor import get_dl_predictor
+        from app.engines.ml_engine.predictor import compute_sector_momentum
 
-        ml_scores = score_stocks(
-            symbols=list(quotes.keys()),
-            quotes=quotes,
-            recommendations=recs,
-            sector_momentum=sector_momentum,
-            vol_estimates=vol_estimates,
-            sectors=sectors_by_symbol,
+        dl_predictor    = get_dl_predictor()
+        sector_momentum = compute_sector_momentum(quotes, sectors_by_symbol)
+        vol_estimates   = {sym: _KNOWN_VOL.get(sym, 0.30) for sym in quotes}
+
+        ml_scores = await dl_predictor.score_stocks(
+            symbols       = list(quotes.keys()),
+            av_key        = cfg.alpha_vantage_api_key or "",
+            quotes        = quotes,
+            recs          = recs,
+            sectors       = sectors_by_symbol,
         )
+
+        model_source = next(
+            (v.get("model_source","sklearn") for v in ml_scores.values()), "sklearn"
+        )
+        logger.info("Layer 2 complete — {} stocks scored via {}",
+                    len(ml_scores), model_source)
 
         # Rank and select top 10 by ml_score
         ranked = sorted(
@@ -297,7 +305,7 @@ async def create_portfolio(
         )
         selected_symbols = [sym for sym, _ in ranked[:10]]
         selected_stocks_info = [s for s in candidate_stocks if s["symbol"] in set(selected_symbols)]
-        logger.info("Layer 2 complete: top {} stocks selected by ML", len(selected_symbols))
+        logger.info("Top {} stocks selected by {} model", len(selected_symbols), model_source)
 
         # ══ LAYER 3: Portfolio Optimization ══════════════════════════════
         # Apply risk-profile floors so expected_return is never misleadingly low

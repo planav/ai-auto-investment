@@ -38,3 +38,5 @@ backend/.env
 frontend/web/.env.local
 # Keep example files
 !.env.example
+backend/app/engines/dl_engine/saved_models/
+backend/data/
