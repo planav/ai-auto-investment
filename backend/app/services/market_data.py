@@ -252,43 +252,36 @@ class FinnhubClient:
             return []
 
     async def get_market_indices(self) -> Dict[str, Dict[str, Any]]:
-        """Get major market indices data using yfinance for proper index values."""
-        indices = {
-            "^GSPC": "S&P 500",
-            "^DJI": "Dow Jones",
-            "^IXIC": "NASDAQ",
-            "^RUT": "Russell 2000",
+        """
+        Fetch major market indices via Finnhub using liquid ETF proxies.
+        ETF → Index mapping:
+          SPY  → GSPC  (S&P 500)
+          QQQ  → IXIC  (NASDAQ-100)
+          DIA  → DJI   (Dow Jones)
+          IWM  → RUT   (Russell 2000)
+        The daily change_percent is identical to the underlying index.
+        """
+        proxy_map = {
+            "SPY": ("GSPC", "S&P 500"),
+            "QQQ": ("IXIC", "NASDAQ"),
+            "DIA": ("DJI",  "Dow Jones"),
+            "IWM": ("RUT",  "Russell 2000"),
         }
 
-        result = {}
-
+        result: Dict[str, Dict[str, Any]] = {}
         try:
-            # Use yfinance for index values
-            for symbol, name in indices.items():
-                try:
-                    ticker = yf.Ticker(symbol)
-                    hist = ticker.history(period="1d")
-
-                    if not hist.empty:
-                        close = float(hist["Close"].iloc[-1])
-                        open_price = float(hist["Open"].iloc[-1])
-                        change = close - open_price
-                        change_percent = (
-                            (change / open_price) * 100 if open_price > 0 else 0
-                        )
-
-                        result[symbol.replace("^", "")] = {
-                            "name": name,
-                            "price": close,
-                            "change": change,
-                            "change_percent": change_percent,
-                        }
-                except Exception as e:
-                    logger.error(f"Error fetching index {symbol}: {e}")
-                    continue
-
+            quotes = await self.get_batch_quotes(list(proxy_map.keys()))
+            for etf_sym, (index_key, index_name) in proxy_map.items():
+                q = quotes.get(etf_sym)
+                if q and q.price > 0:
+                    result[index_key] = {
+                        "name":           index_name,
+                        "price":          q.price,
+                        "change":         q.change,
+                        "change_percent": q.change_percent,
+                    }
         except Exception as e:
-            logger.error(f"Error fetching market indices: {e}")
+            logger.error("Error fetching market indices via Finnhub: {}", e)
 
         return result
 

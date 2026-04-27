@@ -1,6 +1,6 @@
 from app.db.base import Base
 from app.models.user import User
-from app.models.portfolio import Portfolio, PortfolioHolding, PortfolioTransaction
+from app.models.portfolio import Portfolio, PortfolioHolding, PortfolioTransaction, PortfolioSnapshot
 from app.models.wallet import Wallet, WalletTransaction
 
 __all__ = [
@@ -9,6 +9,7 @@ __all__ = [
     "Portfolio",
     "PortfolioHolding",
     "PortfolioTransaction",
+    "PortfolioSnapshot",
     "Wallet",
     "WalletTransaction",
 ]

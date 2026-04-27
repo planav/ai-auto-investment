@@ -1,3 +1,10 @@
+# Patch Python SSL to use Windows native cert store (required for corporate TLS proxy)
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except Exception:
+    pass
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI

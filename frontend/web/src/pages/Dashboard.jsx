@@ -25,7 +25,7 @@ import {
   Layers
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import { marketApi, dashboardApi } from '../services/api'
+import { marketApi, dashboardApi, portfolioApi, portfolioExtApi } from '../services/api'
 import PortfolioChart from '../components/PortfolioChart'
 import AssetAllocation from '../components/AssetAllocation'
 
@@ -46,7 +46,8 @@ export default function Dashboard() {
   
   // Portfolio data
   const [portfolios, setPortfolios] = useState([])
-  const [selectedPortfolio, setSelectedPortfolio] = useState(null)
+  const [selectedPortfolio, setSelectedPortfolio] = useState(null)  // full portfolio with holdings
+  const [chartData, setChartData] = useState([])
   const [totalValue, setTotalValue] = useState(0)
   const [totalInvested, setTotalInvested] = useState(0)
   const [totalReturn, setTotalReturn] = useState(0)
@@ -72,7 +73,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchAllData()
-      const interval = setInterval(fetchAllData, 60000)
+      // Refresh every 5 minutes — each refresh calls Finnhub for live prices
+      const interval = setInterval(fetchAllData, 5 * 60 * 1000)
       return () => clearInterval(interval)
     }
   }, [isAuthenticated])
@@ -128,21 +130,28 @@ export default function Dashboard() {
       const dashboardRes = await dashboardApi.getDashboard()
       const data = dashboardRes.data
 
-     
-
-export default Dashboard;
-
-      
-      // Set portfolios
+      // Set portfolios (summaries)
       const userPortfolios = data.portfolios || []
       setPortfolios(userPortfolios)
-      
-      // Select first portfolio if none selected
-      if (userPortfolios.length > 0 && !selectedPortfolio) {
-        setSelectedPortfolio(userPortfolios[0])
-      } else if (userPortfolios.length > 0 && selectedPortfolio) {
-        const updated = userPortfolios.find(p => p.id === selectedPortfolio.id)
-        if (updated) setSelectedPortfolio(updated)
+
+      // Fetch FULL portfolio data (with holdings) for the selected/first portfolio.
+      // Also silently refresh live prices from Finnhub so returning users
+      // always see current market values, not stale creation-time prices.
+      if (userPortfolios.length > 0) {
+        const targetId = selectedPortfolio?.id || userPortfolios[0].id
+        try {
+          // Fire price refresh concurrently — it updates holdings & total_value in DB
+          const [fullRes, chartRes] = await Promise.all([
+            portfolioExtApi.refreshPrices(targetId)
+              .then(() => portfolioApi.getById(targetId))  // re-fetch after refresh
+              .catch(() => portfolioApi.getById(targetId)), // fallback: fetch without refresh
+            portfolioExtApi.getChart(targetId).catch(() => null),
+          ])
+          if (fullRes?.data) setSelectedPortfolio(fullRes.data)
+          if (chartRes?.data?.chart_data) setChartData(chartRes.data.chart_data)
+        } catch (e) {
+          setSelectedPortfolio(userPortfolios[0])
+        }
       }
       
       // Set wallet
@@ -452,7 +461,18 @@ export default Dashboard;
                     {portfolios.map(portfolio => (
                       <button
                         key={portfolio.id}
-                        onClick={() => setSelectedPortfolio(portfolio)}
+                        onClick={async () => {
+                          try {
+                            const [fullRes, chartRes] = await Promise.all([
+                              portfolioApi.getById(portfolio.id),
+                              portfolioExtApi.getChart(portfolio.id).catch(() => null),
+                            ])
+                            if (fullRes?.data) setSelectedPortfolio(fullRes.data)
+                            if (chartRes?.data?.chart_data) setChartData(chartRes.data.chart_data)
+                          } catch {
+                            setSelectedPortfolio(portfolio)
+                          }
+                        }}
                         className={`px-4 py-2 rounded-lg text-sm transition-colors ${
                           selectedPortfolio?.id === portfolio.id
                             ? 'bg-primary text-dark'
@@ -495,7 +515,10 @@ export default Dashboard;
 
                 {selectedPortfolio && selectedPortfolio.holdings?.length > 0 ? (
                   <>
-                    <PortfolioChart portfolios={[selectedPortfolio]} />
+                    <PortfolioChart
+                      chartData={chartData}
+                      invested={selectedPortfolio?.invested_amount || 0}
+                    />
                     
                     {/* Holdings Table */}
                     <div className="mt-6">

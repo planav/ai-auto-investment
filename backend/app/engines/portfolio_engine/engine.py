@@ -31,27 +31,17 @@ class PortfolioEngine:
         predictions: Dict[str, float],
         risk_profile: str = "moderate",
         constraints: Optional[PortfolioConstraints] = None,
-        optimization_method: str = "mean_variance"
+        optimization_method: str = "mean_variance",
+        cov_matrix: Optional[np.ndarray] = None,
     ) -> AllocationResult:
-        """
-        Optimize portfolio allocation.
-
-        Args:
-            assets: List of asset symbols
-            predictions: Dictionary of predicted returns per asset
-            risk_profile: Risk tolerance (conservative, moderate, aggressive)
-            constraints: Portfolio constraints
-            optimization_method: Optimization method to use
-
-        Returns:
-            AllocationResult with optimal weights and metrics
-        """
+        """Optimize portfolio allocation using real or provided covariance matrix."""
         if constraints is None:
             constraints = PortfolioConstraints()
 
-        # Generate covariance matrix (mock - in production use historical data)
-        n_assets = len(assets)
-        cov_matrix = self._generate_covariance_matrix(n_assets)
+        if cov_matrix is None:
+            # Fallback: flat diagonal (equal variance), not random
+            n_assets = len(assets)
+            cov_matrix = np.eye(n_assets) * 0.04  # 20% annual vol each, no cross-corr
 
         # Run optimization based on method
         if optimization_method == "mean_variance":

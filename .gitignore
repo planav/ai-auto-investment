@@ -1,6 +1,24 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+backend/venv/
+
+# SQLite database files (dev only)
+*.db
+*.sqlite
+*.sqlite3
+
+# ML model binaries (regenerated on startup)
+backend/app/engines/ml_engine/saved_models/
+
+# Claude Code internal
+.claude/
 
 # Node
 node_modules/
@@ -9,14 +27,14 @@ dist/
 
 # OS
 .DS_Store
+Thumbs.db
 
-# Environment variable files — never commit secrets
+# Environment variable files — NEVER commit secrets
 .env
 .env.local
 .env.production
 .env.*.local
 backend/.env
+frontend/web/.env.local
 # Keep example files
 !.env.example
-
-
