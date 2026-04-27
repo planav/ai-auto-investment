@@ -13,9 +13,14 @@ _TRAINING_STATUS = {"status": "idle", "progress": "", "results": None}
 
 
 async def _run_training():
-    """Background coroutine: collect AV data → train TFT + LSTM + N-BEATS."""
+    """
+    Background coroutine:
+      1. Download 200+ stocks from Polygon.io (primary, no daily limit)
+         → falls back to Alpha Vantage if Polygon unavailable
+      2. Train TFT + LSTM-Attention + N-BEATS + Ensemble
+    """
     global _TRAINING_STATUS
-    _TRAINING_STATUS = {"status": "running", "progress": "Collecting Alpha Vantage data…", "results": None}
+    _TRAINING_STATUS = {"status": "running", "progress": "Initialising…", "results": None}
     try:
         from app.core.config import get_settings
         from app.engines.dl_engine.data_pipeline import collect_training_data, TRAINING_UNIVERSE
@@ -23,23 +28,44 @@ async def _run_training():
         from app.engines.dl_engine.predictor import _init_models
 
         cfg = get_settings()
-        if not cfg.alpha_vantage_api_key:
-            _TRAINING_STATUS = {"status": "error", "progress": "ALPHA_VANTAGE_API_KEY not configured", "results": None}
+        polygon_key = cfg.polygon_api_key
+        av_key      = cfg.alpha_vantage_api_key
+
+        if not polygon_key and not av_key:
+            _TRAINING_STATUS = {"status": "error",
+                                 "progress": "Neither POLYGON_API_KEY nor ALPHA_VANTAGE_API_KEY configured",
+                                 "results": None}
             return
 
-        _TRAINING_STATUS["progress"] = f"Downloading data for {len(TRAINING_UNIVERSE)} stocks (may take ~6 min due to AV rate limits)…"
-        X, y = await collect_training_data(cfg.alpha_vantage_api_key)
+        n = len(TRAINING_UNIVERSE)
+        batches = (n + 4) // 5
+        eta_min = batches * 12 // 60 + 10   # download + training estimate
 
-        _TRAINING_STATUS["progress"] = f"Training TFT, LSTM-Attention, N-BEATS on {len(X)} sequences…"
+        src = "Polygon.io (primary)" if polygon_key else "Alpha Vantage (fallback)"
+        _TRAINING_STATUS["progress"] = (
+            f"Downloading {n} stocks via {src} in {batches} batches "
+            f"(rate-limited to 5/min) — ETA ~{eta_min} min…"
+        )
+
+        X, y = await collect_training_data(
+            polygon_key=polygon_key,
+            av_key=av_key,
+            symbols=TRAINING_UNIVERSE,
+            days_back=400,
+        )
+
+        _TRAINING_STATUS["progress"] = (
+            f"Data ready: {len(X):,} sequences from {n} stocks. "
+            f"Training TFT + LSTM-Attention + N-BEATS (100 epochs each)…"
+        )
         results = train_all_models(X, y, epochs=100)
 
-        # Reload models into predictor singleton
-        _init_models()
+        _init_models()   # reload into predictor singleton
 
         _TRAINING_STATUS = {
-            "status": "complete",
-            "progress": f"Training done — {len(X)} sequences, {len(TRAINING_UNIVERSE)} stocks",
-            "results": results,
+            "status":   "complete",
+            "progress": f"Training complete — {len(X):,} sequences, {n} stocks",
+            "results":  results,
         }
         logger.info("DL model training complete: {}", results)
 

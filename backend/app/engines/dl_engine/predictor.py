@@ -89,17 +89,20 @@ class DLPredictor:
     async def _dl_score(
         self, symbols: List[str], av_key: str, quotes: Optional[Dict]
     ) -> Dict[str, dict]:
-        """Run TFT + LSTM + N-BEATS inference on live AV features."""
+        """Run TFT + LSTM + N-BEATS inference on live features (Polygon primary, AV fallback)."""
+        from app.core.config import get_settings as _gs
+        cfg = _gs()
+        polygon_key = cfg.polygon_api_key
         results: Dict[str, dict] = {}
         individual = _INDIVIDUAL or {}
 
-        # Fetch AV features with 12s gaps (AV rate limit: 5/min)
+        # Fetch features with rate-limit-safe gaps
         for i, sym in enumerate(symbols):
             if i > 0 and i % 5 == 0:
-                logger.debug("AV rate-limit pause (DL inference)…")
+                logger.debug("Rate-limit pause (DL inference)…")
                 await asyncio.sleep(13)
 
-            features = await build_live_features(sym, av_key)
+            features = await build_live_features(sym, polygon_key=polygon_key, av_key=av_key)
             if features is None:
                 logger.debug("No AV features for {} — skipping DL inference", sym)
                 # Use Finnhub quote as simple signal

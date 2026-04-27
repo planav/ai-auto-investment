@@ -286,6 +286,7 @@ async def create_portfolio(
         ml_scores = await dl_predictor.score_stocks(
             symbols       = list(quotes.keys()),
             av_key        = cfg.alpha_vantage_api_key or "",
+            # Polygon.io is used as the primary historical data source
             quotes        = quotes,
             recs          = recs,
             sectors       = sectors_by_symbol,
