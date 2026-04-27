@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # Portfolio Holding Schemas
@@ -68,6 +68,8 @@ class PortfolioResponse(PortfolioBase):
     var_95: Optional[float] = None
     cvar_95: Optional[float] = None
     ai_explanation: Optional[str] = None
+    stock_reasoning: Optional[str] = None
+    market_context: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     holdings: List[PortfolioHoldingResponse] = []
@@ -164,3 +166,28 @@ class SystemStats(BaseModel):
     model_status: Dict[str, str] = Field(
         default_factory=dict, description="Training status for each model"
     )
+
+
+
+# Sell holding request
+class SellHoldingRequest(BaseModel):
+    symbol: str
+    quantity: Optional[float] = Field(None, gt=0, description="Sell by share quantity")
+    amount: Optional[float]   = Field(None, gt=0, description="Sell by dollar amount")
+    sell_all: bool            = Field(False,        description="Sell entire position")
+
+    @model_validator(mode="before")
+    @classmethod
+    def require_sell_method(cls, v):
+        if not v.get("sell_all") and not v.get("quantity") and not v.get("amount"):
+            raise ValueError("Provide quantity, amount, or set sell_all=true")
+        return v
+
+
+# Sell response
+class SellHoldingResponse(BaseModel):
+    symbol: str
+    quantity_sold: float
+    price_per_share: float
+    proceeds: float
+    message: str

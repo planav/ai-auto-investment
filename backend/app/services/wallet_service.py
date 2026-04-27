@@ -132,6 +132,29 @@ class WalletService:
 
         return WalletResponse.model_validate(wallet)
 
+    async def refund_investment(self, user_id: int, amount: float, reference_id: str) -> Optional[WalletResponse]:
+        """Refund an investment deduction back to wallet (used on portfolio creation failure)."""
+        wallet = await self.get_or_create_wallet(user_id)
+
+        balance_before = wallet.balance
+        wallet.balance += amount
+        wallet.total_invested = max(0.0, (wallet.total_invested or 0) - amount)
+
+        transaction = WalletTransaction(
+            wallet_id=wallet.id,
+            type=TransactionType.TRADE_SELL,
+            amount=amount,
+            balance_before=balance_before,
+            balance_after=wallet.balance,
+            status=TransactionStatus.COMPLETED,
+            description="Investment refund — portfolio creation failed",
+            reference_id=reference_id,
+        )
+        self.db.add(transaction)
+        await self.db.commit()
+        await self.db.refresh(wallet)
+        return WalletResponse.model_validate(wallet)
+
     async def add_from_sale(self, user_id: int, amount: float, reference_id: str, description: str) -> WalletResponse:
         """Add amount to wallet from portfolio sale"""
         wallet = await self.get_or_create_wallet(user_id)

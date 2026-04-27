@@ -179,25 +179,43 @@ class AllocationOptimizer:
     def _estimate_sector_allocation(
         self,
         assets: List[str],
-        weights: np.ndarray
+        weights: np.ndarray,
     ) -> Dict[str, float]:
-        """Estimate sector allocation (mock implementation)."""
-        # In production, map each asset to its sector
-        sectors = ["Technology", "Healthcare", "Finance", "Consumer", "Energy", "Industrial"]
+        """Map assets to real sectors and aggregate weights."""
+        SECTOR_MAP: Dict[str, str] = {
+            # Technology
+            "AAPL": "Technology", "MSFT": "Technology", "GOOGL": "Technology",
+            "NVDA": "Technology", "AMD": "Technology", "META": "Technology",
+            "CRM": "Technology", "ADBE": "Technology", "SHOP": "Technology",
+            "ORCL": "Technology", "INTC": "Technology", "AVGO": "Technology",
+            # Consumer Discretionary
+            "AMZN": "Consumer", "TSLA": "Consumer", "NFLX": "Consumer",
+            "UBER": "Consumer", "SBUX": "Consumer", "NKE": "Consumer",
+            # Financials
+            "JPM": "Financials", "BAC": "Financials", "GS": "Financials",
+            "COIN": "Financials", "PYPL": "Financials", "SQ": "Financials",
+            "V": "Financials", "MA": "Financials", "WFC": "Financials",
+            # Healthcare
+            "JNJ": "Healthcare", "PFE": "Healthcare", "MRNA": "Healthcare",
+            "UNH": "Healthcare", "ABBV": "Healthcare", "LLY": "Healthcare",
+            # Energy
+            "XOM": "Energy", "CVX": "Energy", "COP": "Energy",
+            # ETFs / Indices
+            "SPY": "US Equities", "QQQ": "Tech ETF", "VTI": "US Equities",
+            "BND": "Bonds", "AGG": "Bonds", "IEF": "Bonds",
+            "GLD": "Commodities", "SCHD": "Dividends",
+            "VEA": "International", "VWO": "Emerging Markets",
+            "VNQ": "Real Estate",
+            # Cash
+            "CASH": "Cash",
+        }
 
-        # Distribute weights randomly across sectors for demo
-        sector_allocation = {}
-        remaining_weight = weights.sum()
+        sector_totals: Dict[str, float] = {}
+        for sym, w in zip(assets, weights):
+            sector = SECTOR_MAP.get(sym, "Other")
+            sector_totals[sector] = round(sector_totals.get(sector, 0.0) + float(w), 4)
 
-        for i, sector in enumerate(sectors):
-            if i == len(sectors) - 1:
-                sector_allocation[sector] = round(remaining_weight, 4)
-            else:
-                weight = remaining_weight * np.random.uniform(0.1, 0.3)
-                sector_allocation[sector] = round(weight, 4)
-                remaining_weight -= weight
-
-        return sector_allocation
+        return sector_totals
 
     def risk_parity_allocation(
         self,

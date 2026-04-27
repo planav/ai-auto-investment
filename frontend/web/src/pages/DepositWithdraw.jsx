@@ -177,17 +177,18 @@ export default function DepositWithdraw() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+          className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
         >
           {/* Available Balance */}
-          <div className="glass-card p-6">
+          <div className="glass-card p-6 border border-primary/20">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Wallet className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <p className="text-gray-400 text-sm">Available Balance</p>
-                <p className="text-2xl font-bold font-display">${walletBalance.balance.toLocaleString()}</p>
+                <p className="text-2xl font-bold font-display text-primary">${walletBalance.balance.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Available to withdraw</p>
               </div>
             </div>
           </div>
@@ -200,7 +201,20 @@ export default function DepositWithdraw() {
               </div>
               <div>
                 <p className="text-gray-400 text-sm">Total Deposited</p>
-                <p className="text-2xl font-bold font-display text-success">${walletBalance.total_deposited.toLocaleString()}</p>
+                <p className="text-2xl font-bold font-display text-success">${walletBalance.total_deposited.toLocaleString(undefined,{minimumFractionDigits:2})}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Total Withdrawn */}
+          <div className="glass-card p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-danger/10 flex items-center justify-center">
+                <ArrowUpRight className="w-6 h-6 text-danger" />
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Total Withdrawn</p>
+                <p className="text-2xl font-bold font-display text-danger">${(walletBalance.total_withdrawn || 0).toLocaleString(undefined,{minimumFractionDigits:2})}</p>
               </div>
             </div>
           </div>
@@ -213,7 +227,7 @@ export default function DepositWithdraw() {
               </div>
               <div>
                 <p className="text-gray-400 text-sm">Total Invested</p>
-                <p className="text-2xl font-bold font-display text-secondary">${walletBalance.total_invested.toLocaleString()}</p>
+                <p className="text-2xl font-bold font-display text-secondary">${walletBalance.total_invested.toLocaleString(undefined,{minimumFractionDigits:2})}</p>
               </div>
             </div>
           </div>
@@ -286,13 +300,30 @@ export default function DepositWithdraw() {
               ))}
             </div>
 
-            {/* Warning for withdrawal */}
+            {/* Withdraw info */}
             {activeTab === 'withdraw' && (
-              <div className="flex items-start gap-3 p-4 bg-danger/10 rounded-lg mb-6">
-                <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-gray-300">
-                  Withdrawals are limited to your available balance. This is a simulation with simulated money.
-                </p>
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-primary" />
+                    <span className="text-sm text-gray-300">Available to withdraw</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-primary">${walletBalance.balance.toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                    <button
+                      onClick={() => setAmount(walletBalance.balance.toFixed(2))}
+                      className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
+                    >
+                      Withdraw All
+                    </button>
+                  </div>
+                </div>
+                {walletBalance.balance === 0 && (
+                  <div className="flex items-start gap-2 p-3 bg-warning/10 rounded-lg">
+                    <AlertCircle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-400">No funds available. Deposit first or sell portfolio holdings to free up cash.</p>
+                  </div>
+                )}
               </div>
             )}
 

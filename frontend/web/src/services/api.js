@@ -60,10 +60,12 @@ api.interceptors.response.use(
 
 // Auth API
 export const authApi = {
-  register: (data) => api.post('/auth/register', data),
-  login: (data) => api.post('/auth/login', data),
-  refresh: () => api.post('/auth/refresh'),
-  getMe: () => api.get('/auth/me'),
+  register:   (data)          => api.post('/auth/register', data),
+  verifyOtp:  (email, otp)    => api.post('/auth/verify-otp', { email, otp }),
+  resendOtp:  (email)         => api.post('/auth/resend-otp', { email }),
+  login:      (data)          => api.post('/auth/login', data),
+  refresh:    ()              => api.post('/auth/refresh'),
+  getMe:      ()              => api.get('/auth/me'),
 }
 
 // Export api instance for direct use
@@ -107,9 +109,18 @@ export const walletApi = {
 export const analysisApi = {
   analyzeAssets: (data) => api.post('/analysis/assets', data),
   getSignals: (symbol) => api.get(`/analysis/signals/${symbol}`),
+  getStockAnalysis: (symbol) => api.get(`/analysis/stock/${symbol}`),
   getExplanation: (portfolioId) => api.get(`/analysis/explain/${portfolioId}`),
   backtest: (data) => api.post('/analysis/backtest', data),
   getModels: () => api.get('/analysis/models'),
+}
+
+// Portfolio extended API
+export const portfolioExtApi = {
+  getChart:      (id)        => api.get(`/portfolios/${id}/chart`),
+  refreshPrices: (id)        => api.post(`/portfolios/${id}/refresh`),
+  getReasoning:  (id)        => api.get(`/portfolios/${id}/reasoning`),
+  sell:          (id, data)  => api.post(`/portfolios/${id}/sell`, data),
 }
 
 // Market Data API

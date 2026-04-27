@@ -2,24 +2,19 @@ from fastapi import APIRouter, WebSocket
 import asyncio
 import random
 import datetime
-import os
 import json
-from google import genai
+
+from app.services.claude_service import stream_claude
 
 router = APIRouter()
 
-# ✅ Initialize Gemini client
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-# -------------------------------
-# 📊 Simulated Market Data Stream
-# -------------------------------
+# Simulated Market Data Stream
 @router.websocket("/ws/market-data")
 async def market_data_ws(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
-            # Simulated market data (replace with Polygon.io, Alpha Vantage, NSE/BSE feed)
             data = {
                 "timestamp": datetime.datetime.utcnow().isoformat(),
                 "AAPL": round(150 + random.uniform(-2, 2), 2),
@@ -27,32 +22,24 @@ async def market_data_ws(websocket: WebSocket):
                 "NIFTY": round(22000 + random.uniform(-50, 50), 2),
             }
             await websocket.send_json(data)
-            await asyncio.sleep(2)  # send every 2 seconds
+            await asyncio.sleep(2)
     except Exception:
         await websocket.close()
 
-# -------------------------------
-# 🤖 Gemini AI Streaming
-# -------------------------------
+
+# Claude AI Streaming (WebSocket)
 @router.websocket("/gemini-stream")
-async def gemini_stream(websocket: WebSocket):
+async def claude_stream_ws(websocket: WebSocket):
+    """WebSocket streaming endpoint powered by Anthropic Claude."""
     await websocket.accept()
     try:
         while True:
-            # Receive query from frontend
             data = await websocket.receive_text()
             payload = json.loads(data)
             query = payload.get("query", "")
 
-            # Stream Gemini response
-            stream = client.models.generate_content_stream(
-                model="gemini-1.5-flash",
-                contents=query
-            )
-
-            async for chunk in stream:
-                if chunk.text:
-                    await websocket.send_text(json.dumps({"response": chunk.text}))
-    except Exception as e:
-        await websocket.send_text(json.dumps({"error": str(e)}))
+            async for chunk in stream_claude(query):
+                await websocket.send_text(json.dumps(chunk))
+    except Exception as exc:
+        await websocket.send_text(json.dumps({"error": str(exc)}))
         await websocket.close()

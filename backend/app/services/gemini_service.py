@@ -1,23 +1,36 @@
 
 import asyncio
 import os
-import google.generativeai as genai
 from typing import AsyncGenerator
+from google import genai
 from app.core.config import get_settings
 from app.core.cache import cache
 
 settings = get_settings()
 
-# Configure Gemini client once at module level
-genai.configure(api_key=settings.gemini_api_key)
+# Initialize Gemini client once at module level
+_GEMINI_CLIENT = genai.Client(api_key=settings.gemini_api_key)
 _GEMINI_MODEL = "gemini-1.5-flash"
+_GEMINI_CLIENT = None
+
+if settings.gemini_api_key:
+    try:
+        from google import genai
+        _GEMINI_CLIENT = genai.Client(api_key=settings.gemini_api_key)
+        logger.info("Gemini client initialized (model: {})", _GEMINI_MODEL)
+    except Exception as exc:
+        logger.warning("Failed to initialize Gemini client: {}", exc)
 
 
-def query_gemini(user_query: str):
-    """
-    Synchronous Gemini query with Redis cache fallback.
-    """
-    # Check cache
+def query_gemini(user_query: str) -> dict:
+    """Synchronous Gemini query with Redis cache fallback."""
+    if _GEMINI_CLIENT is None:
+        return {
+            "result": "AI analysis unavailable — GEMINI_API_KEY not configured.",
+            "cached": False,
+            "confidence": 0.0,
+        }
+
     try:
         cached = cache.get(user_query)
         if cached:
@@ -26,11 +39,12 @@ def query_gemini(user_query: str):
         pass
 
     # Query Gemini
-    model = genai.GenerativeModel(_GEMINI_MODEL)
-    response = model.generate_content(user_query)
+    response = _GEMINI_CLIENT.models.generate_content(
+        model=_GEMINI_MODEL,
+        contents=user_query,
+    )
     result = response.text if hasattr(response, "text") else str(response)
 
-    # Store in cache (1 hour expiry)
     try:
         cache.set(user_query, result, ex=3600)
     except Exception:
@@ -44,9 +58,11 @@ def query_gemini(user_query: str):
 
 
 async def stream_gemini(user_query: str) -> AsyncGenerator[dict, None]:
-    """
-    Async generator that streams Gemini responses chunk by chunk.
-    """
+    """Async generator that streams Gemini responses chunk by chunk."""
+    if _GEMINI_CLIENT is None:
+        yield {"error": "GEMINI_API_KEY not configured"}
+        return
+
     try:
         model = genai.GenerativeModel(_GEMINI_MODEL)
         stream = model.generate_content(user_query, stream=True)
@@ -54,6 +70,6 @@ async def stream_gemini(user_query: str) -> AsyncGenerator[dict, None]:
         for chunk in stream:
             if hasattr(chunk, "text") and chunk.text:
                 yield {"response": chunk.text}
-            await asyncio.sleep(0)  # yield control to event loop
+            await asyncio.sleep(0)
     except Exception as e:
         yield {"error": str(e)}

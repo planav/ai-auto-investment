@@ -1,14 +1,17 @@
-"""LLM service for AI-powered portfolio analysis and explanations."""
+"""LLM service for AI-powered portfolio analysis — powered by Anthropic Claude."""
 
 import json
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
+import anthropic
 from loguru import logger
 
 from app.core.config import get_settings
 
 settings = get_settings()
+
+_MODEL = "claude-haiku-4-5-20251001"
 
 
 @dataclass
@@ -33,57 +36,56 @@ class StockAnalysis:
     risk_level: str
 
 
+def _parse_json_from_text(text: str) -> dict:
+    """Extract the first JSON object from a text response."""
+    start = text.find('{')
+    end = text.rfind('}') + 1
+    if start >= 0 and end > start:
+        return json.loads(text[start:end])
+    return json.loads(text)
+
+
 class LLMService:
-    """Google Gemini 2.0 Flash integration for AI analysis."""
+    """Anthropic Claude integration for AI-powered investment analysis."""
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or settings.gemini_api_key
-        self.client = None
-        self._model_name = None
-        self._genai_types = None
-        self._initialized = False
+        self._api_key = api_key or settings.anthropic_api_key
+        self._client: Optional[anthropic.AsyncAnthropic] = None
 
-    def _initialize(self):
-        """Initialize Gemini model."""
-        if self._initialized:
-            return
+    def _get_client(self) -> Optional[anthropic.AsyncAnthropic]:
+        if self._client is None and self._api_key:
+            try:
+                self._client = anthropic.AsyncAnthropic(api_key=self._api_key)
+                logger.info("Claude LLM service initialized (model: {})", _MODEL)
+            except Exception as exc:
+                logger.error("Failed to init Claude LLM service: {}", exc)
+        return self._client
 
+    async def _complete(self, prompt: str, max_tokens: int = 1024, temperature: float = 0.3) -> Optional[str]:
+        """Send a single user message and return the assistant's text."""
+        client = self._get_client()
+        if client is None:
+            return None
         try:
-            from google import genai
-            from google.genai import types as genai_types
-            self._genai_types = genai_types
-            self.client = genai.Client(api_key=self.api_key)
-            self._model_name = 'gemini-1.5-flash'
-            self._initialized = True
-            logger.info("Gemini LLM service initialized successfully")
-        except ImportError:
-            logger.error("google-genai package not installed")
-            raise
-        except Exception as e:
-            logger.error(f"Error initializing Gemini: {e}")
-            raise
+            msg = await client.messages.create(
+                model=_MODEL,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return msg.content[0].text
+        except Exception as exc:
+            logger.error("Claude API error: {}", exc)
+            return None
 
     async def analyze_portfolio(
         self,
         holdings: List[Dict[str, Any]],
         market_context: Dict[str, Any],
-        risk_tolerance: str = "moderate"
+        risk_tolerance: str = "moderate",
     ) -> Optional[PortfolioAnalysis]:
-        """
-        Generate AI portfolio analysis.
-
-        Args:
-            holdings: List of portfolio holdings with symbol, weight, etc.
-            market_context: Current market conditions
-            risk_tolerance: User's risk tolerance level
-
-        Returns:
-            PortfolioAnalysis object or None if error
-        """
-        try:
-            self._initialize()
-
-            prompt = f"""Analyze this investment portfolio and provide structured recommendations.
+        """Generate AI portfolio analysis using Claude."""
+        prompt = f"""Analyze this investment portfolio and provide structured recommendations.
 
 Portfolio Holdings:
 {json.dumps(holdings, indent=2)}
@@ -93,7 +95,7 @@ Current Market Context:
 
 Risk Tolerance: {risk_tolerance}
 
-Provide analysis in this exact JSON format:
+Respond with ONLY valid JSON in exactly this format (no markdown, no extra text):
 {{
     "risk_assessment": {{
         "level": "low|moderate|high",
@@ -119,70 +121,34 @@ Provide analysis in this exact JSON format:
     ],
     "overall_rating": "A|B|C|D|F",
     "summary": "2-3 sentence summary"
-}}
+}}"""
 
-Be concise and actionable. Focus on practical investment advice."""
+        text = await self._complete(prompt, max_tokens=1024)
+        if text is None:
+            return None
 
-            response = self.client.models.generate_content(
-                model=self._model_name,
-                contents=prompt,
-                config=self._genai_types.GenerateContentConfig(
-                    temperature=0.3,
-                    max_output_tokens=1024,
-                ),
+        try:
+            data = _parse_json_from_text(text)
+            return PortfolioAnalysis(
+                risk_assessment=data.get("risk_assessment", {}),
+                diversification_score=data.get("diversification_score", 50),
+                sector_allocation=data.get("sector_allocation", {}),
+                recommendations=data.get("recommendations", []),
+                overall_rating=data.get("overall_rating", "C"),
+                summary=data.get("summary", "Analysis completed."),
             )
-
-            # Parse JSON response
-            try:
-                # Try to extract JSON from response
-                text = response.text
-                # Find JSON block
-                start = text.find('{')
-                end = text.rfind('}') + 1
-                if start >= 0 and end > start:
-                    json_str = text[start:end]
-                    data = json.loads(json_str)
-                else:
-                    data = json.loads(text)
-
-                return PortfolioAnalysis(
-                    risk_assessment=data.get("risk_assessment", {}),
-                    diversification_score=data.get("diversification_score", 50),
-                    sector_allocation=data.get("sector_allocation", {}),
-                    recommendations=data.get("recommendations", []),
-                    overall_rating=data.get("overall_rating", "C"),
-                    summary=data.get("summary", "Analysis completed.")
-                )
-            except json.JSONDecodeError as e:
-                logger.error(f"Error parsing LLM response: {e}")
-                logger.debug(f"Response text: {response.text}")
-                return None
-
-        except Exception as e:
-            logger.error(f"Error in portfolio analysis: {e}")
+        except json.JSONDecodeError as exc:
+            logger.error("Failed to parse Claude portfolio analysis JSON: {}", exc)
             return None
 
     async def analyze_stock(
         self,
         symbol: str,
         quote_data: Dict[str, Any],
-        company_info: Optional[Dict[str, Any]] = None
+        company_info: Optional[Dict[str, Any]] = None,
     ) -> Optional[StockAnalysis]:
-        """
-        Generate AI stock analysis.
-
-        Args:
-            symbol: Stock symbol
-            quote_data: Current quote data
-            company_info: Optional company information
-
-        Returns:
-            StockAnalysis object (never None — falls back to rule-based analysis)
-        """
-        try:
-            self._initialize()
-
-            prompt = f"""Analyze this stock and provide investment recommendation.
+        """Generate AI stock analysis using Claude. Falls back to rule-based on error."""
+        prompt = f"""Analyze this stock and provide an investment recommendation.
 
 Stock: {symbol}
 Current Price: ${quote_data.get('price', 'N/A')}
@@ -191,153 +157,72 @@ Change: {quote_data.get('change_percent', 0):.2f}%
 Company Info:
 {json.dumps(company_info or {}, indent=2)}
 
-Provide analysis in this exact JSON format:
+Respond with ONLY valid JSON (no markdown, no extra text):
 {{
     "signal": "buy|hold|sell",
     "confidence": 0-100,
     "rationale": "2-3 sentence explanation",
     "key_factors": ["factor1", "factor2", "factor3"],
     "risk_level": "low|moderate|high"
-}}
+}}"""
 
-Focus on recent price action and technical factors. Be concise."""
-
-            response = self.client.models.generate_content(
-                model=self._model_name,
-                contents=prompt,
-                config=self._genai_types.GenerateContentConfig(
-                    temperature=0.3,
-                    max_output_tokens=512,
-                ),
-            )
-
-            # Parse JSON response
-            try:
-                text = response.text
-                start = text.find('{')
-                end = text.rfind('}') + 1
-                if start >= 0 and end > start:
-                    json_str = text[start:end]
-                    data = json.loads(json_str)
-                else:
-                    data = json.loads(text)
-
-                return StockAnalysis(
-                    symbol=symbol,
-                    signal=data.get("signal", "hold"),
-                    confidence=data.get("confidence", 50),
-                    rationale=data.get("rationale", "No analysis available."),
-                    key_factors=data.get("key_factors", []),
-                    risk_level=data.get("risk_level", "moderate")
-                )
-            except json.JSONDecodeError as e:
-                logger.error(f"Error parsing LLM response: {e}")
-                return self._rule_based_analysis(symbol, quote_data)
-
-        except Exception as e:
-            logger.error(f"Error in stock analysis: {e}")
+        text = await self._complete(prompt, max_tokens=512)
+        if text is None:
             return self._rule_based_analysis(symbol, quote_data)
 
-    def _rule_based_analysis(
-        self,
-        symbol: str,
-        quote_data: Dict[str, Any],
-    ) -> StockAnalysis:
-        """
-        Rule-based fallback analysis when LLM is unavailable.
-        Uses price momentum as a simple signal.
-        """
+        try:
+            data = _parse_json_from_text(text)
+            return StockAnalysis(
+                symbol=symbol,
+                signal=data.get("signal", "hold"),
+                confidence=data.get("confidence", 50),
+                rationale=data.get("rationale", "No analysis available."),
+                key_factors=data.get("key_factors", []),
+                risk_level=data.get("risk_level", "moderate"),
+            )
+        except json.JSONDecodeError:
+            return self._rule_based_analysis(symbol, quote_data)
+
+    def _rule_based_analysis(self, symbol: str, quote_data: Dict[str, Any]) -> StockAnalysis:
+        """Rule-based fallback when Claude is unavailable."""
         change_pct = quote_data.get("change_percent", 0)
 
         if change_pct > 2.5:
-            signal, confidence = "buy", 72
-            risk = "medium"
+            signal, confidence, risk = "buy", 72, "medium"
             rationale = (
-                f"{symbol} is showing strong upward momentum with a {change_pct:+.2f}% gain today. "
-                f"Price action suggests continued buying interest."
+                f"{symbol} shows strong upward momentum with a {change_pct:+.2f}% gain today. "
+                "Price action suggests continued buying interest."
             )
-            factors = [
-                f"Strong daily gain of {change_pct:+.2f}%",
-                "Positive price momentum",
-                "Above-average trading activity",
-            ]
+            factors = [f"Strong daily gain of {change_pct:+.2f}%", "Positive momentum", "Above-average activity"]
         elif change_pct > 0.5:
-            signal, confidence = "buy", 63
-            risk = "low"
-            rationale = (
-                f"{symbol} shows modest positive momentum with a {change_pct:+.2f}% gain. "
-                f"Stable upward price action."
-            )
-            factors = [
-                f"Positive daily change of {change_pct:+.2f}%",
-                "Stable price action",
-                "Low volatility signal",
-            ]
+            signal, confidence, risk = "buy", 63, "low"
+            rationale = f"{symbol} shows modest positive momentum ({change_pct:+.2f}%). Stable upward action."
+            factors = [f"Positive change {change_pct:+.2f}%", "Stable price action", "Low volatility"]
         elif change_pct > -0.5:
-            signal, confidence = "hold", 60
-            risk = "low"
-            rationale = (
-                f"{symbol} is trading near flat with a {change_pct:+.2f}% change. "
-                f"No strong directional signal at this time."
-            )
-            factors = [
-                "Neutral daily price movement",
-                "Consolidation pattern",
-                "Await clearer directional signal",
-            ]
+            signal, confidence, risk = "hold", 60, "low"
+            rationale = f"{symbol} is trading near flat ({change_pct:+.2f}%). No strong directional signal."
+            factors = ["Neutral movement", "Consolidation pattern", "Await clearer signal"]
         elif change_pct > -2.5:
-            signal, confidence = "sell", 63
-            risk = "medium"
-            rationale = (
-                f"{symbol} is declining with a {change_pct:+.2f}% loss today. "
-                f"Negative price action warrants caution."
-            )
-            factors = [
-                f"Negative daily change of {change_pct:+.2f}%",
-                "Downward price pressure",
-                "Risk management consideration",
-            ]
+            signal, confidence, risk = "sell", 63, "medium"
+            rationale = f"{symbol} is declining ({change_pct:+.2f}%). Negative price action warrants caution."
+            factors = [f"Negative change {change_pct:+.2f}%", "Downward pressure", "Risk management"]
         else:
-            signal, confidence = "sell", 72
-            risk = "high"
-            rationale = (
-                f"{symbol} is experiencing significant selling pressure with a {change_pct:+.2f}% loss. "
-                f"Strong bearish momentum detected."
-            )
-            factors = [
-                f"Sharp decline of {change_pct:+.2f}%",
-                "Strong selling pressure",
-                "High-risk environment",
-            ]
+            signal, confidence, risk = "sell", 72, "high"
+            rationale = f"{symbol} shows significant selling pressure ({change_pct:+.2f}%). Strong bearish momentum."
+            factors = [f"Sharp decline {change_pct:+.2f}%", "Strong selling", "High-risk environment"]
 
         return StockAnalysis(
-            symbol=symbol,
-            signal=signal,
-            confidence=confidence,
-            rationale=rationale,
-            key_factors=factors,
-            risk_level=risk,
+            symbol=symbol, signal=signal, confidence=confidence,
+            rationale=rationale, key_factors=factors, risk_level=risk,
         )
 
     async def generate_market_summary(
         self,
         indices_data: Dict[str, Any],
-        top_movers: List[Dict[str, Any]]
+        top_movers: List[Dict[str, Any]],
     ) -> Optional[str]:
-        """
-        Generate market summary.
-
-        Args:
-            indices_data: Major indices performance
-            top_movers: Top gaining/losing stocks
-
-        Returns:
-            Summary text or None if error
-        """
-        try:
-            self._initialize()
-
-            prompt = f"""Generate a brief market summary based on the following data.
+        """Generate a brief market summary using Claude."""
+        prompt = f"""Generate a brief market summary based on the following data.
 
 Major Indices:
 {json.dumps(indices_data, indent=2)}
@@ -345,79 +230,39 @@ Major Indices:
 Top Movers:
 {json.dumps(top_movers, indent=2)}
 
-Provide a concise 3-4 sentence summary highlighting:
+Write a concise 3-4 sentence summary covering:
 1. Overall market direction
 2. Notable movers or sectors
-3. Key sentiment
+3. Key investor sentiment
 
-Keep it brief and informative for investors."""
+Keep it brief and informative."""
 
-            response = self.client.models.generate_content(
-                model=self._model_name,
-                contents=prompt,
-                config=self._genai_types.GenerateContentConfig(
-                    temperature=0.4,
-                    max_output_tokens=256,
-                ),
-            )
-
-            return response.text.strip()
-
-        except Exception as e:
-            logger.error(f"Error generating market summary: {e}")
-            return None
+        return await self._complete(prompt, max_tokens=256, temperature=0.4)
 
     async def explain_prediction(
         self,
         symbol: str,
         prediction_data: Dict[str, Any],
-        user_level: str = "beginner"
+        user_level: str = "beginner",
     ) -> Optional[str]:
-        """
-        Explain a prediction in user-friendly terms.
+        """Explain a prediction in user-friendly terms using Claude."""
+        level_guidance = {
+            "beginner": "Use simple language. Avoid jargon. Explain any financial terms.",
+            "intermediate": "Some financial knowledge assumed. Brief explanations.",
+            "advanced": "Professional terminology acceptable.",
+        }
 
-        Args:
-            symbol: Stock symbol
-            prediction_data: Prediction details
-            user_level: User experience level (beginner/intermediate/advanced)
-
-        Returns:
-            Explanation text or None if error
-        """
-        try:
-            self._initialize()
-
-            level_guidance = {
-                "beginner": "Use simple language. Avoid jargon. Explain any financial terms.",
-                "intermediate": "Some financial knowledge assumed. Brief explanations.",
-                "advanced": "Professional terminology acceptable."
-            }
-
-            prompt = f"""Explain this stock prediction for {symbol}:
+        prompt = f"""Explain this stock prediction for {symbol}:
 
 Prediction Data:
 {json.dumps(prediction_data, indent=2)}
 
 Audience: {user_level} investor
-{level_guidance.get(user_level, level_guidance["beginner"])}
+{level_guidance.get(user_level, level_guidance['beginner'])}
 
-Provide a 2-3 sentence explanation of why this prediction was made.
-Focus on the key factors."""
+Provide a 2-3 sentence explanation of why this prediction was made. Focus on key factors."""
 
-            response = self.client.models.generate_content(
-                model=self._model_name,
-                contents=prompt,
-                config=self._genai_types.GenerateContentConfig(
-                    temperature=0.3,
-                    max_output_tokens=256,
-                ),
-            )
-
-            return response.text.strip()
-
-        except Exception as e:
-            logger.error(f"Error explaining prediction: {e}")
-            return None
+        return await self._complete(prompt, max_tokens=256)
 
 
 # Global instance

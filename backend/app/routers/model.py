@@ -1,27 +1,156 @@
-# app/routes/model.py
-from fastapi import APIRouter
-from app.tasks import train_model_task
+"""
+Model management endpoints — trigger DL training, check status.
+"""
+
+import asyncio
+from fastapi import APIRouter, BackgroundTasks
+from loguru import logger
 
 router = APIRouter()
 
+# Global training status
+_TRAINING_STATUS = {"status": "idle", "progress": "", "results": None}
+
+
+async def _run_training():
+    """
+    Background coroutine:
+      1. Download 200+ stocks from Polygon.io (primary, no daily limit)
+         → falls back to Alpha Vantage if Polygon unavailable
+      2. Train TFT + LSTM-Attention + N-BEATS + Ensemble
+    """
+    global _TRAINING_STATUS
+    _TRAINING_STATUS = {"status": "running", "progress": "Initialising…", "results": None}
+    try:
+        from app.core.config import get_settings
+        from app.engines.dl_engine.data_pipeline import collect_training_data, TRAINING_UNIVERSE
+        from app.engines.dl_engine.trainer import train_all_models
+        from app.engines.dl_engine.predictor import _init_models
+
+        cfg = get_settings()
+        polygon_key = cfg.polygon_api_key
+        av_key      = cfg.alpha_vantage_api_key
+
+        if not polygon_key and not av_key:
+            _TRAINING_STATUS = {"status": "error",
+                                 "progress": "Neither POLYGON_API_KEY nor ALPHA_VANTAGE_API_KEY configured",
+                                 "results": None}
+            return
+
+        n = len(TRAINING_UNIVERSE)
+        batches = (n + 4) // 5
+        eta_min = batches * 12 // 60 + 10   # download + training estimate
+
+        src = "Polygon.io (primary)" if polygon_key else "Alpha Vantage (fallback)"
+        _TRAINING_STATUS["progress"] = (
+            f"Downloading {n} stocks via {src} in {batches} batches "
+            f"(rate-limited to 5/min) — ETA ~{eta_min} min…"
+        )
+
+        X, y = await collect_training_data(
+            polygon_key=polygon_key,
+            av_key=av_key,
+            symbols=TRAINING_UNIVERSE,
+            days_back=400,
+        )
+
+        _TRAINING_STATUS["progress"] = (
+            f"Data ready: {len(X):,} sequences from {n} stocks. "
+            f"Training TFT + LSTM-Attention + N-BEATS (100 epochs each)…"
+        )
+        results = train_all_models(X, y, epochs=100)
+
+        _init_models()   # reload into predictor singleton
+
+        _TRAINING_STATUS = {
+            "status":   "complete",
+            "progress": f"Training complete — {len(X):,} sequences, {n} stocks",
+            "results":  results,
+        }
+        logger.info("DL model training complete: {}", results)
+
+    except Exception as exc:
+        logger.error("DL training failed: {}", exc)
+        _TRAINING_STATUS = {"status": "error", "progress": str(exc), "results": None}
+
 
 @router.post("/train-model")
-async def train_model():
-    task = train_model_task.delay()
-    return {"task_id": task.id, "status": "training started"}
+async def trigger_training(background_tasks: BackgroundTasks):
+    """
+    Trigger DL model training in the background.
+
+    Downloads historical OHLCV from Alpha Vantage for 25 stocks,
+    computes 11 technical features, then trains:
+      - Temporal Fusion Transformer (TFT)
+      - LSTM with Multi-Head Attention
+      - N-BEATS
+
+    Due to Alpha Vantage rate limits (5 req/min), data collection takes ~6 min.
+    Training itself takes ~5-10 min on CPU.
+
+    Poll /api/model/status to check progress.
+    """
+    if _TRAINING_STATUS["status"] == "running":
+        return {"status": "already_running", "progress": _TRAINING_STATUS["progress"]}
+
+    background_tasks.add_task(asyncio.run, _run_training())
+    return {
+        "status": "started",
+        "message": (
+            "DL model training started in background. "
+            "TFT + LSTM + N-BEATS will be trained on 25 stocks × 100 days. "
+            "Expected time: ~15 min. Poll /api/model/status for progress."
+        ),
+    }
+
+
+@router.get("/status")
+async def training_status():
+    """Check current DL training status."""
+    from app.engines.dl_engine.trainer import models_trained
+    return {
+        **_TRAINING_STATUS,
+        "models_on_disk": models_trained(),
+    }
+
+
+@router.get("/info")
+async def model_info():
+    """Return information about the deployed DL models."""
+    from app.engines.dl_engine.trainer import models_trained, _MODEL_PATHS
+    from app.engines.dl_engine.predictor import get_dl_predictor
+    predictor = get_dl_predictor()
+    info = []
+    for name, path in _MODEL_PATHS.items():
+        size_kb = round(path.stat().st_size / 1024, 1) if path.exists() else 0
+        info.append({"model": name, "trained": path.exists(), "size_kb": size_kb})
+    return {
+        "dl_ready": predictor.is_dl_ready,
+        "models": info,
+        "architecture": {
+            "tft": "Temporal Fusion Transformer — Variable Selection + LSTM + Temporal Self-Attention (Lim et al. 2021)",
+            "lstm": "BiLSTM with Multi-Head Self-Attention",
+            "nbeats": "Neural Basis Expansion Analysis (Oreshkin et al. 2020)",
+            "ensemble": "Learned-weight mixture of TFT (50%) + LSTM (35%) + N-BEATS (15%)",
+        },
+        "features": [
+            "daily_return", "volume_change", "rsi_14", "macd_signal",
+            "sma20_ratio", "sma50_ratio", "bb_position", "high_low_range",
+            "momentum_5d", "volatility_10d", "atr_ratio",
+        ],
+        "input_seq_len": 20,
+        "prediction_horizon": "5-day forward return",
+    }
 
 
 @router.post("/rebalance")
 async def rebalance_portfolio(portfolio: dict):
-    # Example drift detection logic
-    target_alloc = {"AAPL": 0.5, "TSLA": 0.5}
+    target_alloc  = portfolio.get("target_allocations", {"SPY": 0.5, "QQQ": 0.5})
     current_alloc = portfolio.get("allocations", {})
-    suggestions = []
-
-    for asset, target in target_alloc.items():
-        current = current_alloc.get(asset, 0)
-        if abs(current - target) > 0.05:  # drift threshold
-            action = "BUY" if current < target else "SELL"
-            suggestions.append({"asset": asset, "action": action, "amount": abs(target - current)})
-
+    suggestions = [
+        {"asset": a, "action": "BUY" if current_alloc.get(a, 0) < t else "SELL",
+         "drift": round(abs(current_alloc.get(a, 0) - t), 4)}
+        for a, t in target_alloc.items()
+        if abs(current_alloc.get(a, 0) - t) > 0.05
+    ]
     return {"suggestions": suggestions}

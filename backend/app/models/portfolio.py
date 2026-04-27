@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Float, ForeignKey, Integer, String, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -49,6 +49,10 @@ class Portfolio(Base):
 
     # AI Explanation
     ai_explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Per-stock reasoning from Claude
+    stock_reasoning: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Market context from Claude stock selection
+    market_context: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="portfolios")
@@ -63,6 +67,13 @@ class Portfolio(Base):
         back_populates="portfolio",
         lazy="selectin",
         cascade="all, delete-orphan",
+    )
+    snapshots: Mapped[List["PortfolioSnapshot"]] = relationship(
+        "PortfolioSnapshot",
+        back_populates="portfolio",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+        order_by="PortfolioSnapshot.created_at",
     )
 
     def __repr__(self) -> str:
@@ -132,3 +143,19 @@ class PortfolioTransaction(Base):
 
     def __repr__(self) -> str:
         return f"<PortfolioTransaction(id={self.id}, type={self.transaction_type}, symbol={self.symbol})>"
+
+
+class PortfolioSnapshot(Base):
+    """Daily / on-demand portfolio value snapshots for chart history."""
+    __tablename__ = "portfolio_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    portfolio_id: Mapped[int] = mapped_column(ForeignKey("portfolios.id"), nullable=False)
+    total_value: Mapped[float] = mapped_column(Float, nullable=False)
+    cash_value: Mapped[float] = mapped_column(Float, default=0.0)
+    stocks_value: Mapped[float] = mapped_column(Float, default=0.0)
+
+    portfolio: Mapped["Portfolio"] = relationship("Portfolio", back_populates="snapshots")
+
+    def __repr__(self) -> str:
+        return f"<PortfolioSnapshot(portfolio_id={self.portfolio_id}, value={self.total_value})>"

@@ -34,13 +34,26 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")
 
-    # External APIs
+    # External APIs — Market Data
     finnhub_api_key: Optional[str] = Field(default=None, alias="FINNHUB_API_KEY")
     alpha_vantage_api_key: Optional[str] = Field(default=None, alias="ALPHA_VANTAGE_API_KEY")
     news_api_key: Optional[str] = Field(default=None, alias="NEWS_API_KEY")
-    gemini_api_key: Optional[str] = Field(default=None, alias="GEMINI_API_KEY")
     polygon_api_key: Optional[str] = Field(default=None, alias="POLYGON_API_KEY")
-    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
+
+    # AI / LLM — Anthropic Claude (primary)
+    anthropic_api_key: Optional[str] = Field(default=None, alias="ANTHROPIC_API_KEY")
+
+    # Email / SMTP (optional — OTP returned in API response if not configured)
+    smtp_host: Optional[str] = Field(default=None, alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_user: Optional[str] = Field(default=None, alias="SMTP_USER")
+    smtp_password: Optional[str] = Field(default=None, alias="SMTP_PASSWORD")
+    from_email: Optional[str] = Field(default=None, alias="FROM_EMAIL")
+    from_name: str = Field(default="AutoInvest", alias="FROM_NAME")
+
+    @property
+    def email_configured(self) -> bool:
+        return bool(self.smtp_host and self.smtp_user and self.smtp_password)
 
     # Data Paths
     raw_data_path: str = Field(default="./data/raw", alias="RAW_DATA_PATH")
