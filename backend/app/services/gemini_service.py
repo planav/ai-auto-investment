@@ -1,14 +1,15 @@
+
 import asyncio
 import os
+import google.generativeai as genai
 from typing import AsyncGenerator
-from google import genai
 from app.core.config import get_settings
 from app.core.cache import cache
 
 settings = get_settings()
 
-# Initialize Gemini client once at module level
-_GEMINI_CLIENT = genai.Client(api_key=settings.gemini_api_key)
+# Configure Gemini client once at module level
+genai.configure(api_key=settings.gemini_api_key)
 _GEMINI_MODEL = "gemini-1.5-flash"
 
 
@@ -25,10 +26,8 @@ def query_gemini(user_query: str):
         pass
 
     # Query Gemini
-    response = _GEMINI_CLIENT.models.generate_content(
-        model=_GEMINI_MODEL,
-        contents=user_query,
-    )
+    model = genai.GenerativeModel(_GEMINI_MODEL)
+    response = model.generate_content(user_query)
     result = response.text if hasattr(response, "text") else str(response)
 
     # Store in cache (1 hour expiry)
@@ -49,10 +48,10 @@ async def stream_gemini(user_query: str) -> AsyncGenerator[dict, None]:
     Async generator that streams Gemini responses chunk by chunk.
     """
     try:
-        for chunk in _GEMINI_CLIENT.models.generate_content_stream(
-            model=_GEMINI_MODEL,
-            contents=user_query,
-        ):
+        model = genai.GenerativeModel(_GEMINI_MODEL)
+        stream = model.generate_content(user_query, stream=True)
+
+        for chunk in stream:
             if hasattr(chunk, "text") and chunk.text:
                 yield {"response": chunk.text}
             await asyncio.sleep(0)  # yield control to event loop
